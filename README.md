@@ -1,5 +1,7 @@
 # Secret Contracts Starter Pack
 
+David: This is a scratchpad project for testing out ideas.
+
 This is a template to build secret contracts in Rust to run in
 [Secret Network](https://github.com/enigmampc/SecretNetwork).
 To understand the framework better, please read the overview in the
