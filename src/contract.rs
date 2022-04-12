@@ -6,21 +6,23 @@ extern crate libflate;
 
 use std::str;
 use std::cmp::max;
-use std::io::Read;
+use std::io::{Cursor, Read};
 
 use cosmwasm_std::{Api, Binary, CosmosMsg, debug_print, Env, Extern, HandleResponse, HumanAddr, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
 use cosmwasm_storage::PrefixedStorage;
 use secret_toolkit::utils::{HandleCallback, Query};
 
-use wain_syntax_binary::parse;
+use wain_syntax_binary::{parse};
 use wain_validate::validate;
 use wain_exec::{Runtime, Value, Importer, Stack, Memory, ImportInvalidError, ImportInvokeError};
-use wain_ast::ValType;
+use wain_ast::{Root, ValType};
 
 use libflate::gzip::Decoder;
 
+use wain_syntax_binary::source::BinarySource;
+
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg};
-use crate::state::{config, config_read, contract_data, set_bin_data, State};
+use crate::state::{config, config_read, contract_data, CONTRACT_DATA_KEY, set_bin_data, State};
 
 pub const PREFIX_SIM: &[u8] = b"sim";
 
@@ -200,13 +202,46 @@ pub fn try_process_batch<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
+// TODO, what should this be?
+const MIN_CONTRACT_LEN: usize = 1000;
+
 pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     _env: Env,
     data: Binary
 ) -> StdResult<HandleResponse> {
-    // TODO: Authentication, verification e.t.c.
-    contract_data(&mut deps.storage).save(&data.as_slice().to_vec())?;
+    let data_u8 = data.as_slice();
+    if data_u8.len() <= MIN_CONTRACT_LEN {
+        return Err(StdError::GenericErr {
+            msg: format!("data for contract invalid length (not big enough)"),
+            backtrace: None,
+        })
+    }
+
+    // TODO: Authentication
+
+    // Verify
+    debug_print("WASM: validating WASM");
+
+    let wasm = deflate_wasm(&data_u8)?;
+    let tree = parse_wasm(wasm.as_slice())?;
+
+    debug_print("WASM: loaded WASM module");
+
+    // Validate module
+    if let Err(err) = validate(&tree) {
+        return Err(StdError::GenericErr {
+            msg: format!("WASM is invalid: {err}"),
+            backtrace: None,
+        });
+    }
+
+    debug_print("WASM: verification successful");
+
+    // Store
+    //contract_data(&mut deps.storage).save(&data_vec)?;
+    // raw storage with no serialization.
+    deps.storage.set(CONTRACT_DATA_KEY, data_u8);
 
     debug_print!("saved WASM bytes: {}", data.len());
 
@@ -252,6 +287,40 @@ impl Importer for CortexImporter {
     }
 }
 
+fn deflate_wasm(compressed_bytes: &[u8]) -> Result<Vec<u8>, StdError> {
+    let mut decoder = Decoder::new(
+        Cursor::new(compressed_bytes)).unwrap();
+    let mut buf = Vec::new();
+
+    let res = decoder.read_to_end(&mut buf);
+    if !res.is_ok() {
+        return Err(StdError::GenericErr {
+            msg: format!("failed to deflate WASM binary"),
+            backtrace: None,
+        })
+    }
+
+    debug_print!("WASM: deflated contract ({} bytes)", res.unwrap());
+
+    return Ok(buf)
+}
+
+fn parse_wasm(wasm_binary_u8: &[u8]) -> Result<Root<'_, BinarySource<'_>>, StdError> {
+    return match parse(wasm_binary_u8) {
+        Ok(tree) => {
+            debug_print("WASM: parsed");
+
+            Ok(tree)
+        },
+        Err(err) => {
+            Err(StdError::GenericErr {
+                msg: format!("failed to parse WASM binary: {err}"),
+                backtrace: None,
+            })
+        }
+    };
+}
+
 /*
     Allocate memory for array of bytes inside the wasm module and copy the array of bytes into it
 */
@@ -295,42 +364,19 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     _env: Env,
 ) -> StdResult<HandleResponse> {
-    debug_print("WASM[01]: start");
+    debug_print("WASM: start");
 
-    let wasm_bin_gz = contract_data(&mut deps.storage).load()?;
+    let data_u8 = deps.storage.get(CONTRACT_DATA_KEY).unwrap();
 
-    debug_print("WASM[02]: loaded contract");
+    //let data_vec = contract_data(&mut deps.storage).load()?;
 
-    let mut decoder = Decoder::new(wasm_bin_gz.as_slice()).unwrap();
-    let mut decoded_data = Vec::new();
+    debug_print("WASM: loaded contract");
 
-    decoder.read_to_end(&mut decoded_data).unwrap();
+    let wasm = deflate_wasm(&data_u8)?;
+    let wasm_u8 = wasm.as_slice();
+    let tree = parse_wasm(&wasm_u8)?;
 
-    debug_print("WASM[02]: deflated contract");
-
-    // Parse binary into syntax tree
-    // TODO: TRY AST instead!!
-    let tree = match parse(decoded_data.as_slice()) {
-        Ok(tree) => tree,
-        Err(err) => {
-            return Err(StdError::GenericErr {
-                msg: format!("failed to parse WASM binary: {err}"),
-                backtrace: None,
-            });
-        }
-    };
-
-    debug_print("WASM[03]: loaded WASM module");
-
-    // Validate module
-    if let Err(err) = validate(&tree) {
-        return Err(StdError::GenericErr {
-            msg: format!("WASM is invalid: {err}"),
-            backtrace: None,
-        });
-    }
-
-    debug_print("WASM[04]: validated WASM module");
+    debug_print("WASM: loaded WASM module");
 
     // Make abstract machine runtime. It instantiates a module
     let importer = CortexImporter{};
