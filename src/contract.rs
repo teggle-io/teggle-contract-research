@@ -252,7 +252,7 @@ pub fn try_load_contract<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     _env: Env,
 ) -> StdResult<HandleResponse> {
-    let wasm_bin = contract_data(&mut deps.storage).load()?;
+    let wasm_bin = deps.storage.get(CONTRACT_DATA_KEY).unwrap();
 
     debug_print!("loaded WASM bytes: {}", wasm_bin.len());
 
