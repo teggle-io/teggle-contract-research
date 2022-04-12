@@ -22,7 +22,7 @@ use libflate::gzip::Decoder;
 use wain_syntax_binary::source::BinarySource;
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg};
-use crate::state::{config, config_read, contract_data, CONTRACT_DATA_KEY, set_bin_data, State};
+use crate::state::{config, config_read, CONTRACT_DATA_KEY, set_bin_data, State};
 
 pub const PREFIX_SIM: &[u8] = b"sim";
 
@@ -239,7 +239,6 @@ pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
     debug_print("WASM: verification successful");
 
     // Store
-    //contract_data(&mut deps.storage).save(&data_vec)?;
     // raw storage with no serialization.
     deps.storage.set(CONTRACT_DATA_KEY, data_u8);
 
@@ -366,15 +365,18 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     debug_print("WASM: start");
 
-    let data_u8 = deps.storage.get(CONTRACT_DATA_KEY).unwrap();
-
-    //let data_vec = contract_data(&mut deps.storage).load()?;
+    let data_u8 = deps.storage.get(CONTRACT_DATA_KEY);
+    if data_u8.is_none() {
+        return Err(StdError::GenericErr {
+            msg: format!("no WASM contract found to run."),
+            backtrace: None,
+        });
+    }
 
     debug_print("WASM: loaded contract");
 
-    let wasm = deflate_wasm(&data_u8)?;
-    let wasm_u8 = wasm.as_slice();
-    let tree = parse_wasm(&wasm_u8)?;
+    let wasm = deflate_wasm(&data_u8.unwrap())?;
+    let tree = parse_wasm(&wasm.as_slice())?;
 
     debug_print("WASM: loaded WASM module");
 

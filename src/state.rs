@@ -23,14 +23,6 @@ pub fn config_read<S: Storage>(storage: &S) -> ReadonlySingleton<S, State> {
     singleton_read(storage, CONFIG_KEY)
 }
 
-pub fn contract_data<S: Storage>(storage: &mut S) -> Singleton<S, Vec<u8>> {
-    singleton(storage, CONTRACT_DATA_KEY)
-}
-
-pub fn contract_data_read<S: Storage>(storage: &S) -> ReadonlySingleton<S, Vec<u8>> {
-    singleton_read(storage, CONTRACT_DATA_KEY)
-}
-
 //
 // Bin data storage setters and getters
 //
