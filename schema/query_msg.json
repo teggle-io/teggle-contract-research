@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "get_count"
+      ],
+      "properties": {
+        "get_count": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "get_index_meta"
+      ],
+      "properties": {
+        "get_index_meta": {
+          "type": "object",
+          "required": [
+            "auth"
+          ],
+          "properties": {
+            "auth": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

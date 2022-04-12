@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HandleMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "increment"
+      ],
+      "properties": {
+        "increment": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "reset"
+      ],
+      "properties": {
+        "reset": {
+          "type": "object",
+          "required": [
+            "count"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "simulate"
+      ],
+      "properties": {
+        "simulate": {
+          "type": "object",
+          "required": [
+            "count"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "simulate_other"
+      ],
+      "properties": {
+        "simulate_other": {
+          "type": "object",
+          "required": [
+            "count"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "simulate_query"
+      ],
+      "properties": {
+        "simulate_query": {
+          "type": "object",
+          "required": [
+            "count"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "process_batch"
+      ],
+      "properties": {
+        "process_batch": {
+          "type": "object",
+          "required": [
+            "transactions"
+          ],
+          "properties": {
+            "transactions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/BatchTxn"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "BatchTxn": {
+      "type": "object",
+      "required": [
+        "auth",
+        "id",
+        "payload"
+      ],
+      "properties": {
+        "auth": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
