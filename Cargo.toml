@@ -43,7 +43,6 @@ cosmwasm-storage = { version = "0.10", package = "secret-cosmwasm-storage" }
 ## Testing
 secret-toolkit = "0.2.0"
 bincode2 = "2.0.1"
-#base64 = "0.20.0-alpha.1"
 wain-syntax-binary = { path = "../wain/wain-syntax-binary" }
 wain-validate = { path = "../wain/wain-validate" }
 wain-exec = { path = "../wain/wain-exec" }

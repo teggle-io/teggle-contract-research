@@ -12,13 +12,12 @@ use cosmwasm_storage::PrefixedStorage;
 use secret_toolkit::utils::{HandleCallback, Query};
 
 use wain_syntax_binary::{parse};
+use wain_syntax_binary::source::BinarySource;
 use wain_validate::validate;
 use wain_exec::{Runtime, Value, Importer, Stack, Memory, ImportInvalidError, ImportInvokeError, check_func_signature};
 use wain_ast::{Root, ValType};
 
 use libflate::gzip::Decoder;
-
-use wain_syntax_binary::source::BinarySource;
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg};
 use crate::state::{config, config_read, CONTRACT_DATA_KEY, set_bin_data, State};
@@ -271,7 +270,7 @@ impl Importer for CortexImporter {
         }
     }
 
-    fn call(&mut self, name: &str, _stack: &mut Stack, _memory: &mut Memory) -> Result<(), ImportInvokeError> {
+    fn call(&mut self, name: &str, stack: &mut Stack, memory: &mut Memory) -> Result<(), ImportInvokeError> {
         // Implement your own function call. `name` is a name of function and you have full access
         // to stack and linear memory. Pop values from stack for getting arguments and push value to
         // set return value.
@@ -282,8 +281,21 @@ impl Importer for CortexImporter {
 
         match name {
             "debug_print" => {
-                // TODO
-                Ok(())
+                let msg_str_ptr: i32 = stack.pop();
+                let msg_str_bytes = memory.get_region(msg_str_ptr).
+                    map_err(|err| {
+                    return ImportInvokeError::Fatal {
+                        message: err.to_string(),
+                    }
+                })?;
+
+                //runtime.deallocate_region(msg_str_ptr)?;
+
+                let msg_str =  String::from_utf8(msg_str_bytes).unwrap();
+
+                unreachable!("GOT MESSAGE '{}'", msg_str);
+
+                //Ok(())
             },
             _ => unreachable!("fatal(call): invalid import function '{}'", name)
         }
@@ -361,8 +373,8 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
     debug_print("WASM[04]: loaded WASM instance");
 
     // Allocate a string for the input data inside wasm module
-    let input_data = b"Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World. Hello World.";
-    let input_data_wasm_ptr = match runtime.set_region(input_data) {
+    let input_data = b"Hello World..";
+    let input_data_wasm_ptr = match runtime.allocate_and_set_region(input_data) {
         Ok(m) => m,
         _ => {
             return Err(StdError::GenericErr {
