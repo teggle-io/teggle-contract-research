@@ -1,21 +1,16 @@
 //extern crate wee_alloc;
 extern crate wasm2_std;
 
-use std::os::raw::c_void;
 use wasm2_std::{Api, debug_print, Env, Extern, HandleResponse, Querier, StdResult, Storage};
+use wasm2_std::memory::{consume_region, Region};
 
 // Use `wee_alloc` as the global allocator.
 //#[global_allocator]
 //static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[no_mangle]
-pub extern "C" fn run_wasm(input_data_ptr: *mut c_void, input_data_length: i32) -> i32 {
-    //use std::ptr::copy;
-    let input_data: Vec<u8> = unsafe {
-        Vec::from_raw_parts(input_data_ptr as *mut u8,
-                            input_data_length as usize, input_data_length as usize)
-    };
-
+pub extern "C" fn run_wasm(input_data_ptr: i32) -> i32 {
+    let input_data: Vec<u8> = unsafe { consume_region(input_data_ptr as *mut Region) };
     let input_data_str =  String::from_utf8(input_data).unwrap();
 
     //let inputs = serde_json::from_slice(&input_data).unwrap();
