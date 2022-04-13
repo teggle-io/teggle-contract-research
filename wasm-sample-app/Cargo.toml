@@ -1,7 +1,7 @@
 [package]
 name = "wasm-sample-app"
 version = "0.1.0"
-authors = ["Brandon Fish <brandon.j.fish@gmail.com>"]
+authors = ["David Radunz <david@vimtura.com>"]
 edition = "2018"
 
 [workspace]
@@ -9,6 +9,27 @@ edition = "2018"
 [lib]
 crate-type = ["cdylib"]
 
-[dependencies]
-wasm-bindgen = "0.2.74"
+[profile.release]
+opt-level = 's'
+lto = true
+debug = false
+rpath = false
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true
 
+#[package.metadata.wasm-pack.profile.release]
+#wasm-opt = ['-g', '-O']
+
+[features]
+default = []
+# for quicker tests, cargo test --lib
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["wasm2-std/backtraces"]
+debug-print = ["wasm2-std/debug-print"]
+
+[dependencies]
+#wee_alloc = "0.4.5"
+wasm2-std = { version = "0.10.0", package = "teggle-wasm2-std", path = "../../teggle-wasm2/packages/std" }

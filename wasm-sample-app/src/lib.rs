@@ -1,26 +1,12 @@
+//extern crate wee_alloc;
+extern crate wasm2_std;
+
 use std::os::raw::c_void;
+use wasm2_std::{Api, debug_print, Env, Extern, HandleResponse, Querier, StdResult, Storage};
 
-/*
-    Allocate a chunk of memory of `size` bytes in wasm module
-*/
-#[no_mangle]
-pub extern "C" fn alloc(size: usize) -> *mut c_void {
-    use std::mem;
-    let mut buf = Vec::with_capacity(size);
-    let ptr = buf.as_mut_ptr();
-    mem::forget(buf);
-    return ptr as *mut c_void;
-}
-
-/*
-    Deallocate a chunk of memory in wasm module
-*/
-#[no_mangle]
-pub extern "C" fn dealloc(ptr: *mut c_void, cap: usize) {
-    unsafe {
-        let _buf = Vec::from_raw_parts(ptr, 0, cap);
-    }
-}
+// Use `wee_alloc` as the global allocator.
+//#[global_allocator]
+//static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[no_mangle]
 pub extern "C" fn run_wasm(input_data_ptr: *mut c_void, input_data_length: i32) -> i32 {
@@ -43,7 +29,23 @@ pub extern "C" fn run_wasm(input_data_ptr: *mut c_void, input_data_length: i32) 
 
     //return_data.len() as i32
 
-    return input_data_str.len() as i32
+    debug_print("Hello World");
+
+    return input_data_str.len() as i32;
 
     //return 0 as i32
+}
+
+pub enum HandleMsg {
+
+}
+
+pub fn handle<S: Storage, A: Api, Q: Querier>(
+    _deps: &mut Extern<S, A, Q>,
+    env: Env,
+    _msg: HandleMsg,
+) -> StdResult<HandleResponse> {
+    debug_print!("handle called by {}", env.message.sender);
+
+    return Ok(HandleResponse::default())
 }
