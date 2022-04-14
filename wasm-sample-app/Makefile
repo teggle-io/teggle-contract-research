@@ -2,6 +2,7 @@
 build: _build compress-wasm optimize-wasm
 _build:
 	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown --features="debug-print"
+	#cargo build --release --target wasm32-unknown-unknown --features="debug-print"
 
 .PHONY: build-profile _build-profile
 build-profile: _build-profile compress-wasm optimize-wasm
@@ -20,6 +21,7 @@ compress-wasm:
 optimize-wasm:
 	wasm-opt -Oz contract.wasm -o ./optimized.wasm
 	cat ./optimized.wasm | gzip -9 > ./optimized.wasm.gz
+	cat ./optimized.wasm.gz | base64 -w0 > ./optimized.wasm.gz.b64
 
 .PHONY: clean
 clean:

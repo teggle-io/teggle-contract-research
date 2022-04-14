@@ -31,5 +31,7 @@ backtraces = ["wasm2-std/backtraces"]
 debug-print = ["wasm2-std/debug-print"]
 
 [dependencies]
-#wee_alloc = "0.4.5"
+snafu = { version = "0.6.3" }
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 wasm2-std = { version = "0.10.0", package = "teggle-wasm2-std", path = "../../teggle-wasm2/packages/std" }
+bincode2 = "2.0.1"
