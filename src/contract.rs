@@ -1,23 +1,22 @@
+extern crate libflate;
+extern crate wain_ast;
+extern crate wain_exec;
 extern crate wain_syntax_binary;
 extern crate wain_validate;
-extern crate wain_exec;
-extern crate wain_ast;
-extern crate libflate;
 
-use std::str;
 use std::io::{Cursor, Read};
+use std::str;
 
 use cosmwasm_std::{Api, Binary, CosmosMsg, debug_print, Env, Extern, HandleResponse, HumanAddr, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
 use cosmwasm_storage::PrefixedStorage;
+use libflate::gzip::Decoder;
 use secret_toolkit::utils::{HandleCallback, Query};
-
-use wain_syntax_binary::{parse};
+use wain_ast::{Root, ValType};
+use wain_exec::{check_func_signature, Importer, ImportInvalidError, ImportInvokeError, Memory, Runtime, Stack, Value};
+use wain_exec::trap::Trap;
+use wain_syntax_binary::parse;
 use wain_syntax_binary::source::BinarySource;
 use wain_validate::validate;
-use wain_exec::{Runtime, Value, Importer, Stack, Memory, ImportInvalidError, ImportInvokeError, check_func_signature};
-use wain_ast::{Root, ValType};
-
-use libflate::gzip::Decoder;
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg};
 use crate::state::{config, config_read, CONTRACT_DATA_KEY, set_bin_data, State};
@@ -55,7 +54,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::SimulateOther { count } => try_simulate_other(deps, env, count),
         HandleMsg::SimulateQuery { count } => try_simulate_query(deps, env, count),
         HandleMsg::ProcessBatch { transactions } => try_process_batch(deps, env, transactions),
-        HandleMsg::SaveContract { data} => try_save_contract(deps, env, data),
+        HandleMsg::SaveContract { data } => try_save_contract(deps, env, data),
         HandleMsg::LoadContract {} => try_load_contract(deps, env),
         HandleMsg::RunWasm {} => try_run_wasm(deps, env),
     }
@@ -206,14 +205,14 @@ const MIN_CONTRACT_LEN: usize = 1000;
 pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     _env: Env,
-    data: Binary
+    data: Binary,
 ) -> StdResult<HandleResponse> {
     let data_u8 = data.as_slice();
     if data_u8.len() <= MIN_CONTRACT_LEN {
         return Err(StdError::GenericErr {
             msg: format!("data for contract invalid length (not big enough)"),
             backtrace: None,
-        })
+        });
     }
 
     // TODO: Authentication
@@ -253,17 +252,25 @@ pub fn try_load_contract<S: Storage, A: Api, Q: Querier>(
 }
 
 
-struct CortexImporter {
+struct CortexImporter<'d, S: Storage, A: Api, Q: Querier> {
+    deps: &'d mut Extern<S, A, Q>,
 }
 
-impl Importer for CortexImporter {
-    fn validate(&self, name: &str, params: &[ValType], ret: Option<ValType>) -> Option<ImportInvalidError> {
-        // `name` is a name of function to validate. `params` and `ret` are the function's signature.
-        // Return ImportInvalidError::NotFound when the name is unknown.
-        // Return ImportInvalidError::SignatureMismatch when signature does not match.
-        // wain_exec::check_func_signature() utility is would be useful for the check.
+fn map_trap_err_to_import_err(err: Box<Trap>) -> ImportInvokeError {
+    return ImportInvokeError::Fatal {
+        message: err.to_string(),
+    };
+}
 
+impl <'d, S: Storage, A: Api, Q: Querier> Importer for CortexImporter<'d, S, A, Q> {
+    fn validate(&self, name: &str, params: &[ValType], ret: Option<ValType>) -> Option<ImportInvalidError> {
         match name {
+            // Database
+            "db_read" => check_func_signature(params, ret,
+                                              &[ValType::I32],
+                                              Some(ValType::I32)),
+
+            // Debug
             "debug_print" => check_func_signature(params, ret,
                                                   &[ValType::I32], None),
             _ => Some(ImportInvalidError::NotFound),
@@ -271,32 +278,29 @@ impl Importer for CortexImporter {
     }
 
     fn call(&mut self, name: &str, stack: &mut Stack, memory: &mut Memory) -> Result<(), ImportInvokeError> {
-        // Implement your own function call. `name` is a name of function and you have full access
-        // to stack and linear memory. Pop values from stack for getting arguments and push value to
-        // set return value.
-        // Note: Consistency between imported function signature and implementation of this method
-        // is your responsibility.
-        // On invocation failure, return ImportInvokeError::Fatal. It is trapped by interpreter and it
-        // stops execution immediately.
-
         match name {
-            "debug_print" => {
-                let msg_str_ptr: i32 = stack.pop();
-                let msg_str_bytes = memory.get_region(msg_str_ptr).
-                    map_err(|err| {
-                    return ImportInvokeError::Fatal {
-                        message: err.to_string(),
-                    }
-                })?;
+            // Database
+            "db_read" => {
+                let key_str_bytes = memory
+                    .get_region(stack.pop())
+                    .map_err(map_trap_err_to_import_err)?;
 
-                //runtime.deallocate_region(msg_str_ptr)?;
+                self.deps.storage.get(key_str_bytes.as_slice());
 
-                let msg_str =  String::from_utf8(msg_str_bytes).unwrap();
-
-                unreachable!("GOT MESSAGE '{}'", msg_str);
-
-                //Ok(())
+                Ok(())
             },
+
+            // Debug
+            "debug_print" => {
+                let msg_str_bytes = memory
+                    .get_region(stack.pop())
+                    .map_err(map_trap_err_to_import_err)?;
+
+                // cortex.v1 (example of module name and version).
+                debug_print!("WASM2[cortex.v1]: {}", String::from_utf8(msg_str_bytes).unwrap());
+
+                Ok(())
+            }
             _ => unreachable!("fatal(call): invalid import function '{}'", name)
         }
     }
@@ -312,12 +316,12 @@ fn deflate_wasm(compressed_bytes: &[u8]) -> Result<Vec<u8>, StdError> {
         return Err(StdError::GenericErr {
             msg: format!("failed to deflate WASM binary"),
             backtrace: None,
-        })
+        });
     }
 
     debug_print!("WASM: deflated contract ({} bytes)", res.unwrap());
 
-    return Ok(buf)
+    return Ok(buf);
 }
 
 fn parse_wasm(wasm_binary_u8: &[u8]) -> Result<Root<'_, BinarySource<'_>>, StdError> {
@@ -326,7 +330,7 @@ fn parse_wasm(wasm_binary_u8: &[u8]) -> Result<Root<'_, BinarySource<'_>>, StdEr
             debug_print("WASM: parsed module");
 
             Ok(tree)
-        },
+        }
         Err(err) => {
             Err(StdError::GenericErr {
                 msg: format!("failed to parse WASM binary: {err}"),
@@ -358,9 +362,9 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
     debug_print("WASM: loaded WASM module");
 
     // Make abstract machine runtime. It instantiates a module
-    let importer = CortexImporter{};
+    let importer = CortexImporter { deps };
 
-    let mut runtime: Runtime<CortexImporter> = match Runtime::instantiate(&tree.module, importer) {
+    let mut runtime: Runtime<CortexImporter<S, A, Q>> = match Runtime::instantiate(&tree.module, importer) {
         Ok(m) => m,
         Err(err) => {
             return Err(StdError::GenericErr {
@@ -398,7 +402,7 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
                     return Err(StdError::GenericErr {
                         msg: format!("expected i32 to be returned by 'run_wasm' call"),
                         backtrace: None,
-                    })
+                    });
                 }
             }
         }
@@ -406,8 +410,8 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
             return Err(StdError::GenericErr {
                 msg: format!("failed to call 'run_wasm' in WASM: {err}"),
                 backtrace: None,
-            })
-        },
+            });
+        }
     }
 
     debug_print("WASM[99]: end");
@@ -442,10 +446,11 @@ fn query_index_meta<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, auth
 
 #[cfg(test)]
 mod tests {
+    use std::time::SystemTime;
+
     use cosmwasm_std::{coins, from_binary, StdError};
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 
-    use std::time::{SystemTime};
     use crate::msg::HandleMsg::{RunWasm, SaveContract};
 
     use super::*;
@@ -531,7 +536,7 @@ mod tests {
         handle(&mut deps, env, msg).unwrap();
 
         //// Run Contract
-        let msg = RunWasm { };
+        let msg = RunWasm {};
         let env = mock_env("creator", &coins(2, "token"));
 
         let start = SystemTime::now();
