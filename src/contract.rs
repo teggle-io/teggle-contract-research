@@ -1,25 +1,16 @@
 extern crate libflate;
-extern crate wain_ast;
-extern crate wain_exec;
-extern crate wain_syntax_binary;
-extern crate wain_validate;
+extern crate wasmi;
 
 use std::io::{Cursor, Read};
 use std::str;
 
-use cosmwasm_std::{Api, Binary, CanonicalAddr, CosmosMsg, debug_print, Env, Extern, HandleResponse, HumanAddr, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
+use cosmwasm_std::{Api, Binary, CosmosMsg, debug_print, Env, Extern, HandleResponse, HumanAddr, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
 use cosmwasm_storage::PrefixedStorage;
 use libflate::gzip::Decoder;
-use schemars::_serde_json::to_vec;
 use secret_toolkit::utils::{HandleCallback, Query};
-use wain_ast::{Root, ValType};
-use wain_exec::{check_func_signature, Importer, ImportInvalidError, ImportInvokeError, Memory, Runtime, Stack, Value};
-use wain_exec::trap::Trap;
-use wain_syntax_binary::parse;
-use wain_syntax_binary::source::BinarySource;
-use wain_validate::validate;
+use wasmi::{ImportsBuilder, Module, ModuleInstance};
 
-use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg, WasmHandleMsg};
+use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg};
 use crate::state::{config, config_read, CONTRACT_DATA_KEY, set_bin_data, State};
 
 pub const PREFIX_SIM: &[u8] = b"sim";
@@ -49,6 +40,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     debug_print!("handle called by {}", env.message.sender);
 
     match msg {
+        HandleMsg::NoOp {} => try_no_op(deps, env),
         HandleMsg::Increment {} => try_increment(deps, env),
         HandleMsg::Reset { count } => try_reset(deps, env, count),
         HandleMsg::Simulate { count } => try_simulate(deps, env, count),
@@ -59,6 +51,13 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::LoadContract {} => try_load_contract(deps, env),
         HandleMsg::RunWasm {} => try_run_wasm(deps, env),
     }
+}
+
+pub fn try_no_op<S: Storage, A: Api, Q: Querier>(
+    _deps: &mut Extern<S, A, Q>,
+    _env: Env,
+) -> StdResult<HandleResponse> {
+    Ok(HandleResponse::default())
 }
 
 pub fn try_increment<S: Storage, A: Api, Q: Querier>(
@@ -220,17 +219,7 @@ pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
 
     // Verify
     let wasm = deflate_wasm(&data_u8)?;
-    let tree = parse_wasm(wasm.as_slice())?;
-
-    // Validate module
-    if let Err(err) = validate(&tree) {
-        return Err(StdError::GenericErr {
-            msg: format!("WASM is invalid: {err}"),
-            backtrace: None,
-        });
-    }
-
-    debug_print("WASM: verification successful");
+    let _tree = parse_wasm(wasm.as_slice())?;
 
     // Store
     // raw storage with no serialization.
@@ -253,27 +242,9 @@ pub fn try_load_contract<S: Storage, A: Api, Q: Querier>(
 }
 
 
+/*
 struct CortexImporter<'d, S: Storage, A: Api, Q: Querier> {
     deps: &'d mut Extern<S, A, Q>,
-}
-
-fn pop_value(stack: &mut Stack, memory: &mut Memory) -> Result<Vec<u8>, ImportInvokeError> {
-    memory
-        .get_region(stack.pop())
-        .map_err(map_trap_err_to_import_err)
-}
-
-fn map_trap_err_to_import_err(err: Box<Trap>) -> ImportInvokeError {
-    return ImportInvokeError::Fatal {
-        message: err.to_string(),
-    };
-}
-
-fn map_trap_err_to_std_err(err: Box<Trap>) -> StdError {
-    return StdError::GenericErr {
-        msg: err.to_string(),
-        backtrace: None
-    };
 }
 
 impl<'d, S: Storage, A: Api, Q: Querier> Importer for CortexImporter<'d, S, A, Q> {
@@ -427,6 +398,7 @@ impl<'d, S: Storage, A: Api, Q: Querier> Importer for CortexImporter<'d, S, A, Q
         }
     }
 }
+*/
 
 fn deflate_wasm(compressed_bytes: &[u8]) -> Result<Vec<u8>, StdError> {
     let mut decoder = Decoder::new(
@@ -446,8 +418,8 @@ fn deflate_wasm(compressed_bytes: &[u8]) -> Result<Vec<u8>, StdError> {
     return Ok(buf);
 }
 
-fn parse_wasm(wasm_binary_u8: &[u8]) -> Result<Root<'_, BinarySource<'_>>, StdError> {
-    return match parse(wasm_binary_u8) {
+fn parse_wasm(wasm_binary_u8: &[u8]) -> Result<Module, StdError> {
+    return match Module::from_buffer(&wasm_binary_u8) {
         Ok(tree) => {
             debug_print("WASM: parsed module");
 
@@ -464,7 +436,7 @@ fn parse_wasm(wasm_binary_u8: &[u8]) -> Result<Root<'_, BinarySource<'_>>, StdEr
 
 pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    env: Env,
+    _env: Env,
 ) -> StdResult<HandleResponse> {
     debug_print("WASM: start");
 
@@ -479,65 +451,21 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
     debug_print("WASM: loaded contract");
 
     let wasm = deflate_wasm(&data_u8.unwrap())?;
-    let tree = parse_wasm(&wasm.as_slice())?;
+    let module = parse_wasm(&wasm.as_slice())?;
 
     debug_print("WASM: loaded WASM module");
 
-    // Make abstract machine runtime. It instantiates a module
-    let importer = CortexImporter { deps };
+    let _instance =
+        ModuleInstance::new(
+            &module,
+            &ImportsBuilder::default()
+        )
+            .expect("failed to instantiate wasm module")
+            .assert_no_start();
 
-    let mut runtime: Runtime<CortexImporter<S, A, Q>> = match Runtime::instantiate(&tree.module, importer) {
-        Ok(m) => m,
-        Err(err) => {
-            return Err(StdError::GenericErr {
-                msg: format!("failed to instantiate WASM runtime: {err}"),
-                backtrace: None,
-            });
-        }
-    };
-
-    debug_print("WASM[04]: loaded WASM instance");
+   // let instance = Instance::
 
     /*
-    // Allocate a string for the input data inside wasm module
-    let input_data = b"Hello World..";
-    let input_data_wasm_ptr = match runtime.allocate_and_set_region(input_data) {
-        Ok(m) => m,
-        _ => {
-            return Err(StdError::GenericErr {
-                msg: format!("failed to set region in WASM VM"),
-                backtrace: None,
-            });
-        }
-    };
-
-    debug_print("WASM[05]: wrote to WASM memory");
-
-    match runtime.invoke("run_wasm", &[Value::I32(input_data_wasm_ptr as i32)]) {
-        Ok(ret) => {
-            match ret.unwrap() {
-                Value::I32(bytes_len) => {
-                    // TODO
-
-                    debug_print!("WASM[06]: WASM result len: {bytes_len}");
-                }
-                _ => {
-                    return Err(StdError::GenericErr {
-                        msg: format!("expected i32 to be returned by 'run_wasm' call"),
-                        backtrace: None,
-                    });
-                }
-            }
-        }
-        Err(err) => {
-            return Err(StdError::GenericErr {
-                msg: format!("failed to call 'run_wasm' in WASM: {err}"),
-                backtrace: None,
-            });
-        }
-    }
-    */
-
     // TODO: REMOVE
 
     println!("allocating env ...");
@@ -583,6 +511,8 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
             });
         }
     }
+
+     */
 
     debug_print("WASM[99]: end");
 

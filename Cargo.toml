@@ -19,7 +19,9 @@ crate-type = ["cdylib", "rlib"]
 opt-level = 3
 debug = false
 rpath = false
-lto = true
+# wasmi
+lto = "fat"
+#lto = true
 debug-assertions = false
 codegen-units = 1
 panic = 'abort'
@@ -43,10 +45,7 @@ cosmwasm-storage = { version = "0.10", package = "secret-cosmwasm-storage" }
 ## Testing
 secret-toolkit = "0.2.0"
 bincode2 = "2.0.1"
-wain-syntax-binary = { path = "../wain/wain-syntax-binary" }
-wain-validate = { path = "../wain/wain-validate" }
-wain-exec = { path = "../wain/wain-exec" }
-wain-ast = { path = "../wain/wain-ast" }
+wasmi = { version = "0", default-features = false, path = "../wasmi" }
 libflate = "1"
 
 [dev-dependencies]
