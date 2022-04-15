@@ -7,7 +7,7 @@ _build:
 .PHONY: build-profile _build-profile
 build-profile: _build-profile compress-wasm optimize-wasm
 _build-profile:
-	cargo build --release --target wasm32-unknown-unknown
+	cargo build --release --target wasm32-unknown-unknown --features="debug-print"
 
 
 .PHONY: compress-wasm

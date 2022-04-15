@@ -38,7 +38,6 @@ debug-print = ["cosmwasm-std/debug-print"]
 [dependencies]
 snafu = { version = "0.6.3" }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-derive_more = "0.99"
 schemars = "0.7"
 cosmwasm-std = { version = "0.10", package = "secret-cosmwasm-std" }
 cosmwasm-storage = { version = "0.10", package = "secret-cosmwasm-storage" }

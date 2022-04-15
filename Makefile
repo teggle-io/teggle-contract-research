@@ -20,6 +20,7 @@ unit-test:
 build: _build compress-wasm optimize-wasm
 _build:
 	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown --features="debug-print"
+	#cargo build --release --target wasm32-unknown-unknown --features="debug-print"
 
 # This is a build suitable for uploading to mainnet.
 # Calls to `debug_print` get removed by the compiler.
