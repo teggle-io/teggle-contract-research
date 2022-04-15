@@ -32,8 +32,14 @@ overflow-checks = true
 default = []
 # for quicker tests, cargo test --lib
 # for more explicit tests, cargo test --features=backtraces
-backtraces = ["cosmwasm-std/backtraces"]
-debug-print = ["cosmwasm-std/debug-print"]
+backtraces = [
+  "cosmwasm-std/backtraces",
+  "wasm2-host/backtraces"
+]
+debug-print = [
+  "cosmwasm-std/debug-print",
+  "wasm2-host/debug-print"
+]
 
 [dependencies]
 snafu = { version = "0.6.3" }
