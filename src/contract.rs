@@ -391,6 +391,6 @@ mod tests {
         let elapsed = end.duration_since(start);
         let taken_ms = elapsed.unwrap_or_default().as_millis();
 
-        println!("taken: {taken_ms}ms")
+        println!("run_wasm taken: {taken_ms}ms")
     }
 }
