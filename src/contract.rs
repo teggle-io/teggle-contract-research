@@ -1,14 +1,13 @@
-extern crate libflate;
-extern crate wasmi;
 
-use std::io::{Cursor, Read};
+extern crate wasm2_host;
+
 use std::str;
 
 use cosmwasm_std::{Api, Binary, CosmosMsg, debug_print, Env, Extern, HandleResponse, HumanAddr, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
 use cosmwasm_storage::PrefixedStorage;
-use libflate::gzip::Decoder;
+
 use secret_toolkit::utils::{HandleCallback, Query};
-use wasmi::{ImportsBuilder, Module, ModuleInstance};
+use wasm2_host::{start_engine_from_wasm_binary, Wasm2Operation};
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg};
 use crate::state::{config, config_read, CONTRACT_DATA_KEY, set_bin_data, State};
@@ -218,8 +217,9 @@ pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
     // TODO: Authentication
 
     // Verify
-    let wasm = deflate_wasm(&data_u8)?;
-    let _tree = parse_wasm(wasm.as_slice())?;
+
+    start_engine_from_wasm_binary(&data_u8, deps,
+                                  Wasm2Operation::Verify)?;
 
     // Store
     // raw storage with no serialization.
@@ -241,282 +241,21 @@ pub fn try_load_contract<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
-
-/*
-struct CortexImporter<'d, S: Storage, A: Api, Q: Querier> {
-    deps: &'d mut Extern<S, A, Q>,
-}
-
-impl<'d, S: Storage, A: Api, Q: Querier> Importer for CortexImporter<'d, S, A, Q> {
-    fn validate(&self, name: &str, params: &[ValType], ret: Option<ValType>) -> Option<ImportInvalidError> {
-        match name {
-            "db_read" => check_func_signature(params, ret,
-                                              &[ValType::I32],
-                                              Some(ValType::I32)),
-            "write_db" => check_func_signature(params, ret,
-                                               &[ValType::I32, ValType::I32],
-                                               None),
-            "db_remove" => check_func_signature(params, ret,
-                                                &[ValType::I32],
-                                                None),
-            "canonicalize_address" => check_func_signature(params, ret,
-                                                           &[ValType::I32, ValType::I32],
-                                                           Some(ValType::I32)),
-            "humanize_address" => check_func_signature(params, ret,
-                                                       &[ValType::I32, ValType::I32],
-                                                       Some(ValType::I32)),
-            "query_chain" => check_func_signature(params, ret,
-                                                  &[ValType::I32],
-                                                  Some(ValType::I32)),
-            "gas" => check_func_signature(params, ret,
-                                          &[ValType::I32],
-                                          None),
-
-
-            "tuplet_log" => check_func_signature(params, ret,
-                                                  &[ValType::I32, ValType::I32, ValType::I32],
-                                                 None),
-            #[cfg(feature = "debug-print")]
-            "debug_print" => check_func_signature(params, ret,
-                                                  &[ValType::I32], None),
-            _ => Some(ImportInvalidError::NotFound),
-        }
-    }
-
-    // TODO: Abstract all of this more (obviously mot inline in a file like this either!).
-    fn call(&mut self, name: &str, stack: &mut Stack, memory: &mut Memory) -> Result<(), ImportInvokeError> {
-        match name {
-            // fn read_db(key: *const c_void) -> i32;
-            "db_read" => {
-                let key_bytes = pop_value(stack, memory)?;
-
-                match self.deps.storage.get(key_bytes.as_slice()) {
-                    Some(v) => stack.push_pending_alloc(v),
-                    None => stack.push::<i32>(0)
-                }
-
-                Ok(())
-            }
-            // fn write_db(key: *const c_void, value: *mut c_void);
-            "write_db" => {
-                let value_bytes = pop_value(stack, memory)?;
-                let key_bytes = pop_value(stack, memory)?;
-
-                self.deps.storage.set(key_bytes.as_slice(), value_bytes.as_slice());
-
-                Ok(())
-            }
-            // fn db_remove(key: *const c_void) -> i32;
-            "db_remove" => {
-                let key_bytes = pop_value(stack, memory)?;
-
-                self.deps.storage.remove(key_bytes.as_slice());
-
-                Ok(())
-            }
-            // fn canonicalize_address(human: *const c_void, canonical: *mut c_void) -> i32;
-            "canonicalize_address" => {
-                let dest_ptr = stack.pop();
-                let addr_bytes = pop_value(stack, memory)?;
-
-                match self.deps.api.canonical_address(
-                    &HumanAddr::from(String::from_utf8(addr_bytes).unwrap())) {
-                    Ok(v) => {
-                        memory.set_region(dest_ptr, v.as_slice())
-                            .map_err(map_trap_err_to_import_err)?;
-                        stack.push::<i32>(0);
-                    }
-                    Err(err) => {
-                        stack.push_pending_alloc(format!("{err}").into_bytes());
-                    }
-                }
-
-                Ok(())
-            }
-            // fn humanize_address(canonical: *const c_void, human: *mut c_void) -> i32;
-            "humanize_address" => {
-                let dest_ptr = stack.pop();
-                let addr_bytes = pop_value(stack, memory)?;
-
-                match self.deps.api.human_address(
-                    &CanonicalAddr::from(addr_bytes)) {
-                    Ok(v) => {
-                        memory.set_region(dest_ptr,
-                                          v.to_string().as_bytes())
-                            .map_err(map_trap_err_to_import_err)?;
-                        stack.push::<i32>(0);
-                    }
-                    Err(err) => {
-                        stack.push_pending_alloc(format!("{err}").into_bytes());
-                    }
-                }
-
-                Ok(())
-            }
-            // fn query_chain(request_ptr: *const c_void);
-            "query_chain" => {
-                let _request_bytes = pop_value(stack, memory)?;
-
-                // TODO: can't make QueryRequest without known type. may need low level access.
-                //let request: QueryRequest = from_slice(request_bytes.as_slice()).unwrap();
-                //self.deps.querier.query(&request);
-
-                Ok(())
-            }
-            // fn gas(request_ptr: *const c_void);
-            "gas" => {
-                // TODO
-
-                Ok(())
-            }
-
-            "tuplet_log" => {
-                //println!("tuplet_log: stack size", stack.);
-
-                let c = stack.pop::<i32>();
-                let b = stack.pop::<i32>();
-                let a = stack.pop::<i32>();
-
-                println!("tuplet_log: {} {} {}", a, b, c);
-
-                Ok(())
-            }
-
-            #[cfg(feature = "debug-print")]
-            "debug_print" => {
-                let msg_str_bytes = pop_value(stack, memory)?;
-
-                // cortex.v1 (example of module name and version).
-                //debug_print!("WASM2[cortex.v1]: {}", String::from_utf8(msg_str_bytes).unwrap());
-
-                // TODO: REMOVE
-                println!("WASM2[cortex.v1]: {}", String::from_utf8(msg_str_bytes).unwrap());
-
-                Ok(())
-            }
-            _ => unreachable!("fatal(call): invalid import function '{}'", name)
-        }
-    }
-}
-*/
-
-fn deflate_wasm(compressed_bytes: &[u8]) -> Result<Vec<u8>, StdError> {
-    let mut decoder = Decoder::new(
-        Cursor::new(compressed_bytes)).unwrap();
-    let mut buf = Vec::new();
-
-    let res = decoder.read_to_end(&mut buf);
-    if !res.is_ok() {
-        return Err(StdError::GenericErr {
-            msg: format!("failed to deflate WASM binary"),
-            backtrace: None,
-        });
-    }
-
-    debug_print!("WASM: deflated contract ({} bytes)", res.unwrap());
-
-    return Ok(buf);
-}
-
-fn parse_wasm(wasm_binary_u8: &[u8]) -> Result<Module, StdError> {
-    return match Module::from_buffer(&wasm_binary_u8) {
-        Ok(tree) => {
-            debug_print("WASM: parsed module");
-
-            Ok(tree)
-        }
-        Err(err) => {
-            Err(StdError::GenericErr {
-                msg: format!("failed to parse WASM binary: {err}"),
-                backtrace: None,
-            })
-        }
-    };
-}
-
 pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    _env: Env,
+    env: Env,
 ) -> StdResult<HandleResponse> {
     debug_print("WASM: start");
 
-    let data_u8 = deps.storage.get(CONTRACT_DATA_KEY);
-    if data_u8.is_none() {
+    let data = deps.storage.get(CONTRACT_DATA_KEY);
+    if data.is_none() {
         return Err(StdError::GenericErr {
             msg: format!("no WASM contract found to run."),
             backtrace: None,
         });
     }
 
-    debug_print("WASM: loaded contract");
-
-    let wasm = deflate_wasm(&data_u8.unwrap())?;
-    let module = parse_wasm(&wasm.as_slice())?;
-
-    debug_print("WASM: loaded WASM module");
-
-    let _instance =
-        ModuleInstance::new(
-            &module,
-            &ImportsBuilder::default()
-        )
-            .expect("failed to instantiate wasm module")
-            .assert_no_start();
-
-   // let instance = Instance::
-
-    /*
-    // TODO: REMOVE
-
-    println!("allocating env ...");
-
-    let env_bytes = to_vec(&env).unwrap();
-
-    println!("env bytes: {}", env_bytes.len());
-
-    let env_bytes_ptr = runtime.allocate_and_set_region(env_bytes.as_slice())
-        .map_err(map_trap_err_to_std_err)?;
-
-    println!("allocating msg ...");
-
-    let msg = WasmHandleMsg::DoNothing {};
-    let msg_bytes = to_vec(&msg).unwrap();
-    let msg_bytes_ptr = runtime.allocate_and_set_region(msg_bytes.as_slice())
-        .map_err(map_trap_err_to_std_err)?;
-
-    // TODO: REMOVE
-    println!("running handle ...");
-
-    match runtime.invoke("handle", &[Value::I32(env_bytes_ptr as i32),
-        Value::I32(msg_bytes_ptr as i32)]) {
-        Ok(ret) => {
-            match ret.unwrap() {
-                Value::I32(bytes_len) => {
-                    // TODO
-
-                    debug_print!("WASM[06]: WASM result len: {bytes_len}");
-                }
-                _ => {
-                    return Err(StdError::GenericErr {
-                        msg: format!("expected i32 to be returned by 'run_wasm' call"),
-                        backtrace: None,
-                    });
-                }
-            }
-        }
-        Err(err) => {
-            return Err(StdError::GenericErr {
-                msg: format!("failed to call 'handle' in WASM: {err}"),
-                backtrace: None,
-            });
-        }
-    }
-
-     */
-
-    debug_print("WASM[99]: end");
-
-    Ok(HandleResponse::default())
+    wasm2_host::handle(&data.unwrap(), deps, env)
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
