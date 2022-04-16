@@ -1,3 +1,4 @@
+use std::{fs::File, io::Read};
 use std::str;
 
 use cosmwasm_std::{Api, Binary, CosmosMsg, debug_print, Env, Extern, HandleResponse, HumanAddr, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
@@ -7,6 +8,8 @@ use secret_toolkit::utils::{HandleCallback, Query};
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg};
 use crate::state::{config, config_read, CONTRACT_DATA_KEY, set_bin_data, State};
+
+use gluon::{vm::api::IO, ThreadExt};
 
 pub const PREFIX_SIM: &[u8] = b"sim";
 
@@ -239,6 +242,15 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
     _env: Env,
 ) -> StdResult<HandleResponse> {
     debug_print("WASM: start");
+
+    let thread = gluon::new_vm();
+    thread.get_database_mut().run_io(true);
+
+    //let mut source = String::new();
+    //let mut file = File::open("examples/24.glu")?;
+    //file.read_to_string(&mut source)?;
+
+    //thread.run_expr::<IO<()>>("24", &source)?;
 
     Ok(HandleResponse::default())
 }

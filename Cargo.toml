@@ -41,6 +41,7 @@ serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 schemars = "0.7"
 cosmwasm-std = { version = "0.10", package = "secret-cosmwasm-std" }
 cosmwasm-storage = { version = "0.10", package = "secret-cosmwasm-storage" }
+gluon = "0.18.0"
 
 ## Testing
 secret-toolkit = "0.2.0"
