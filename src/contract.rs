@@ -1,13 +1,9 @@
-
-extern crate wasm2_host;
-
 use std::str;
 
 use cosmwasm_std::{Api, Binary, CosmosMsg, debug_print, Env, Extern, HandleResponse, HumanAddr, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
 use cosmwasm_storage::PrefixedStorage;
 
 use secret_toolkit::utils::{HandleCallback, Query};
-use wasm2_host::{start_engine_from_wasm_binary, Wasm2Operation};
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg};
 use crate::state::{config, config_read, CONTRACT_DATA_KEY, set_bin_data, State};
@@ -216,10 +212,7 @@ pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
 
     // TODO: Authentication
 
-    // Verify
-
-    start_engine_from_wasm_binary(&data_u8, deps,
-                                  Wasm2Operation::Verify)?;
+    // TODO: Verify
 
     // Store
     // raw storage with no serialization.
@@ -242,20 +235,12 @@ pub fn try_load_contract<S: Storage, A: Api, Q: Querier>(
 }
 
 pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
+    _deps: &mut Extern<S, A, Q>,
+    _env: Env,
 ) -> StdResult<HandleResponse> {
     debug_print("WASM: start");
 
-    let data = deps.storage.get(CONTRACT_DATA_KEY);
-    if data.is_none() {
-        return Err(StdError::GenericErr {
-            msg: format!("no WASM contract found to run."),
-            backtrace: None,
-        });
-    }
-
-    wasm2_host::handle(&data.unwrap(), deps, env)
+    Ok(HandleResponse::default())
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
