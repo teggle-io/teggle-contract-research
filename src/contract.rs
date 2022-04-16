@@ -1,13 +1,16 @@
+use std::borrow::Borrow;
 use std::str;
 
 use cosmwasm_std::{Api, Binary, CosmosMsg, debug_print, Env, Extern, HandleResponse, HumanAddr, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
 use cosmwasm_storage::PrefixedStorage;
-use rhai::Engine;
 
 use secret_toolkit::utils::{HandleCallback, Query};
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg};
 use crate::state::{config, config_read, CONTRACT_DATA_KEY, set_bin_data, State};
+
+use rhai::{Engine, ImmutableString};
+use rhai::packages::StandardPackage;
 
 pub const PREFIX_SIM: &[u8] = b"sim";
 
@@ -241,13 +244,54 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     debug_print("RHAI: start");
 
-    let engine = Engine::new();
+    //let mut do_store = |key: ImmutableString, val: ImmutableString| {
+    //    deps.storage.set(key.as_bytes(), val.as_bytes());
+    //};
+
+    let mut engine = Engine::new();
+
+    //engine.register_fn("do_store", do_store);
+
+    // Default print/debug implementations
+    engine.on_print(|text| {
+        println!("CORTEX[]: {}", text);
+        debug_print!("CORTEX[]: {}", text);
+    });
+
+    engine.on_debug(|text, source, pos| {
+        if let Some(source) = source {
+            println!("{} @ {:?} | {}", source, pos, text);
+            debug_print!("{} @ {:?} | {}", source, pos, text);
+        } else if pos.is_none() {
+            println!("{}", text);
+            debug_print!("{}", text);
+        } else {
+            println!("{:?} | {}", pos, text);
+            debug_print!("{:?} | {}", pos, text);
+        }
+    });
 
     // Your first Rhai Script
-    let script = "print(40 + 2);";
+    let script = "\
+let x = 1000;
+
+// simulate do..while using loop
+loop {
+    //do_store(x, x);
+
+    x -= 1;
+
+    if x <= 0 { break; }
+}
+    ";
 
     // Run the script - prints "42"
-    let _ret = engine.run(script);
+    //let _ret = engine.run(script);
+
+    let ast = engine.compile(script).unwrap();
+    let _ret = engine.eval_ast(&ast);
+
+    
 
     Ok(HandleResponse::default())
 }
