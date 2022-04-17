@@ -17,3 +17,4 @@ optimized.wasm*
 *.iml
 .idea
 *.gz
+*.core

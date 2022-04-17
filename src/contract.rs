@@ -224,6 +224,7 @@ pub fn try_save<S: Storage, A: Api, Q: Querier>(
     // TODO: Authentication
 
     // TODO: Verify
+    // TODO: Ensure dummy deps are passed in
 
     // Store
     // raw storage with no serialization.
@@ -239,9 +240,9 @@ pub fn try_load<S: Storage, A: Api, Q: Querier>(
     _env: Env,
 ) -> StdResult<HandleResponse> {
     let deps = RefCell::borrow_mut(&*deps);
-    let wasm_bin = deps.storage.get(SCRIPT_DATA_KEY).unwrap();
+    let script_data = deps.storage.get(SCRIPT_DATA_KEY).unwrap();
 
-    debug_print!("loaded rhai bytes: {}", wasm_bin.len());
+    debug_print!("loaded rhai bytes: {}", script_data.len());
 
     Ok(HandleResponse::default())
 }
@@ -262,7 +263,7 @@ pub fn try_run<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
+    deps: Rc<RefCell<Extern<S, A, Q>>>,
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
@@ -271,12 +272,19 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     }
 }
 
-fn query_count<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<CountResponse> {
+fn query_count<S: Storage, A: Api, Q: Querier>(
+    deps: Rc<RefCell<Extern<S, A, Q>>>
+) -> StdResult<CountResponse> {
+    let deps = RefCell::borrow_mut(&*deps);
     let state = config_read(&deps.storage).load()?;
     Ok(CountResponse { count: state.count })
 }
 
-fn query_index_meta<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, auth: String) -> StdResult<CountResponse> {
+fn query_index_meta<S: Storage, A: Api, Q: Querier>(
+    deps: Rc<RefCell<Extern<S, A, Q>>>,
+    auth: String
+) -> StdResult<CountResponse> {
+    let deps = RefCell::borrow_mut(&*deps);
     if auth != "123" {
         return Err(StdError::Unauthorized { backtrace: None });
     }
@@ -295,58 +303,61 @@ mod tests {
     use cosmwasm_std::{coins, from_binary, StdError};
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 
-    use crate::msg::HandleMsg::{RunWasm, SaveContract};
+    use crate::msg::HandleMsg::{Run, Save};
 
     use super::*;
 
     #[test]
     fn proper_initialization() {
-        let mut deps = mock_dependencies(20, &[]);
+        let deps = mock_dependencies(20, &coins(2, "token"));
+        let deps = Rc::new(RefCell::new(deps));
 
         let msg = InitMsg { count: 17 };
         let env = mock_env("creator", &coins(1000, "earth"));
 
         // we can just call .unwrap() to assert this was a success
-        let res = init(&mut deps, env, msg).unwrap();
+        let res = init(deps.clone(), env, msg).unwrap();
         assert_eq!(0, res.messages.len());
 
         // it worked, let's query the state
-        let res = query(&deps, QueryMsg::GetCount {}).unwrap();
+        let res = query(deps.clone(), QueryMsg::GetCount {}).unwrap();
         let value: CountResponse = from_binary(&res).unwrap();
         assert_eq!(17, value.count);
     }
 
     #[test]
     fn increment() {
-        let mut deps = mock_dependencies(20, &coins(2, "token"));
+        let deps = mock_dependencies(20, &coins(2, "token"));
+        let deps = Rc::new(RefCell::new(deps));
 
         let msg = InitMsg { count: 17 };
         let env = mock_env("creator", &coins(2, "token"));
-        let _res = init(&mut deps, env, msg).unwrap();
+        let _res = init(deps.clone(), env, msg).unwrap();
 
         // anyone can increment
         let env = mock_env("anyone", &coins(2, "token"));
         let msg = HandleMsg::Increment {};
-        let _res = handle(&mut deps, env, msg).unwrap();
+        let _res = handle(deps.clone(), env, msg).unwrap();
 
         // should increase counter by 1
-        let res = query(&deps, QueryMsg::GetCount {}).unwrap();
+        let res = query(deps.clone(), QueryMsg::GetCount {}).unwrap();
         let value: CountResponse = from_binary(&res).unwrap();
         assert_eq!(18, value.count);
     }
 
     #[test]
     fn reset() {
-        let mut deps = mock_dependencies(20, &coins(2, "token"));
+        let deps = mock_dependencies(20, &coins(2, "token"));
+        let deps = Rc::new(RefCell::new(deps));
 
         let msg = InitMsg { count: 17 };
         let env = mock_env("creator", &coins(2, "token"));
-        let _res = init(&mut deps, env, msg).unwrap();
+        let _res = init(deps.clone(), env, msg).unwrap();
 
         // not anyone can reset
         let unauth_env = mock_env("anyone", &coins(2, "token"));
         let msg = HandleMsg::Reset { count: 5 };
-        let res = handle(&mut deps, unauth_env, msg);
+        let res = handle(deps.clone(), unauth_env, msg);
         match res {
             Err(StdError::Unauthorized { .. }) => {}
             _ => panic!("Must return unauthorized error"),
@@ -355,34 +366,35 @@ mod tests {
         // only the original creator can reset the counter
         let auth_env = mock_env("creator", &coins(2, "token"));
         let msg = HandleMsg::Reset { count: 5 };
-        let _res = handle(&mut deps, auth_env, msg).unwrap();
+        let _res = handle(deps.clone(), auth_env, msg).unwrap();
 
         // should now be 5
-        let res = query(&deps, QueryMsg::GetCount {}).unwrap();
+        let res = query(deps.clone(), QueryMsg::GetCount {}).unwrap();
         let value: CountResponse = from_binary(&res).unwrap();
         assert_eq!(5, value.count);
     }
 
     #[test]
-    fn run_wasm() {
-        let mut deps = mock_dependencies(20, &coins(2, "token"));
+    fn run() {
+        let deps = mock_dependencies(20, &coins(2, "token"));
+        let deps = Rc::new(RefCell::new(deps));
 
         //// Save Contract
         let contract_b64 = fs::read_to_string("./wasm-sample-app/optimized.wasm.gz.b64").unwrap();
         let contract_bin= Binary::from_base64(contract_b64.borrow()).unwrap();
 
-        let msg = SaveContract { data: contract_bin };
+        let msg = Save { data: contract_bin };
         let env = mock_env("creator", &coins(2, "token"));
 
-        handle(&mut deps, env, msg).unwrap();
+        handle(deps.clone(), env, msg).unwrap();
 
         //// Run Contract
-        let msg = RunWasm {};
+        let msg = Run {};
         let env = mock_env("creator", &coins(2, "token"));
 
         let start = SystemTime::now();
 
-        handle(&mut deps, env, msg).unwrap();
+        handle(deps.clone(), env, msg).unwrap();
 
         let end = SystemTime::now();
         let elapsed = end.duration_since(start);

@@ -42,10 +42,25 @@ debug-print = [
 [dependencies]
 snafu = { version = "0.6.3" }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+bincode2 = "2.0.1"
 schemars = "0.7"
-cosmwasm-std = { version = "0.10", package = "teggle-cosmwasm-std", path = "../teggle-omnibus/packages/cosmwasm/std" }
-cosmwasm-storage = { version = "0.10", package = "teggle-cosmwasm-storage", path = "../teggle-omnibus/packages/cosmwasm/storage" }
-omnibus-core = { version = "0.10", package = "teggle-omnibus-core", path = "../teggle-omnibus/packages/core" }
+
+[dependencies.cosmwasm-std]
+version = "0.10"
+package = "teggle-cosmwasm-std"
+features = ["rc-deps"]
+path = "../teggle-omnibus/packages/cosmwasm/std"
+
+[dependencies.cosmwasm-storage]
+version = "0.10"
+package = "teggle-cosmwasm-storage"
+path = "../teggle-omnibus/packages/cosmwasm/storage"
+
+[dependencies.omnibus-core]
+version = "0.10"
+package = "teggle-omnibus-core"
+path = "../teggle-omnibus/packages/core"
+
 
 ## Testing
 #secret-toolkit = "0.2.0"
