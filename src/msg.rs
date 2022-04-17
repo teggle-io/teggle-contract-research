@@ -1,7 +1,7 @@
 use cosmwasm_std::Binary;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use secret_toolkit::utils::{HandleCallback, Query};
+//use secret_toolkit::utils::{HandleCallback, Query};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
@@ -46,9 +46,9 @@ pub enum OtherHandleMsg {
     Simulate { count: i32 },
 }
 
-impl HandleCallback for OtherHandleMsg {
-    const BLOCK_SIZE: usize = 256;
-}
+//impl HandleCallback for OtherHandleMsg {
+//    const BLOCK_SIZE: usize = 256;
+//}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -59,9 +59,9 @@ pub enum QueryMsg {
     GetIndexMeta { auth: String },
 }
 
-impl Query for QueryMsg {
-    const BLOCK_SIZE: usize = 256;
-}
+//impl Query for QueryMsg {
+//    const BLOCK_SIZE: usize = 256;
+//}
 
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

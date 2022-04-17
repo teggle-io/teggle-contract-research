@@ -1,24 +1,26 @@
-use std::borrow::Borrow;
+extern crate omnibus_core;
+
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::str;
 
-use cosmwasm_std::{Api, Binary, CosmosMsg, debug_print, Env, Extern, HandleResponse, HumanAddr, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
+use cosmwasm_std::{Api, Binary, debug_print, Env, Extern, HandleResponse, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
 use cosmwasm_storage::PrefixedStorage;
+use omnibus_core::OmnibusEngine;
 
-use secret_toolkit::utils::{HandleCallback, Query};
-
-use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, OtherHandleMsg, QueryMsg};
+use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, QueryMsg};
 use crate::state::{config, config_read, CONTRACT_DATA_KEY, set_bin_data, State};
 
-use rhai::{Engine, ImmutableString};
-use rhai::packages::StandardPackage;
+//use secret_toolkit::utils::{HandleCallback, Query};
 
 pub const PREFIX_SIM: &[u8] = b"sim";
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+    deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
+    let mut deps = RefCell::borrow_mut(&*deps);
     let state = State {
         count: msg.count,
         owner: deps.api.canonical_address(&env.message.sender)?,
@@ -31,8 +33,8 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     Ok(InitResponse::default())
 }
 
-pub fn handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+pub fn handle<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
+    deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
@@ -43,8 +45,14 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Increment {} => try_increment(deps, env),
         HandleMsg::Reset { count } => try_reset(deps, env, count),
         HandleMsg::Simulate { count } => try_simulate(deps, env, count),
-        HandleMsg::SimulateOther { count } => try_simulate_other(deps, env, count),
-        HandleMsg::SimulateQuery { count } => try_simulate_query(deps, env, count),
+        HandleMsg::SimulateOther { count: _ } => {
+            //try_simulate_other(deps, env, count)
+            Ok(HandleResponse::default())
+        },
+        HandleMsg::SimulateQuery { count: _ } => {
+            //try_simulate_query(deps, env, count)
+            Ok(HandleResponse::default())
+        },
         HandleMsg::ProcessBatch { transactions } => try_process_batch(deps, env, transactions),
         HandleMsg::SaveContract { data } => try_save_contract(deps, env, data),
         HandleMsg::LoadContract {} => try_load_contract(deps, env),
@@ -53,16 +61,17 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 }
 
 pub fn try_no_op<S: Storage, A: Api, Q: Querier>(
-    _deps: &mut Extern<S, A, Q>,
+    _deps: Rc<RefCell<Extern<S, A, Q>>>,
     _env: Env,
 ) -> StdResult<HandleResponse> {
     Ok(HandleResponse::default())
 }
 
 pub fn try_increment<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+    deps: Rc<RefCell<Extern<S, A, Q>>>,
     _env: Env,
 ) -> StdResult<HandleResponse> {
+    let mut deps = RefCell::borrow_mut(&*deps);
     config(&mut deps.storage).update(|mut state| {
         state.count += 1;
         debug_print!("count = {}", state.count);
@@ -81,10 +90,11 @@ pub fn try_increment<S: Storage, A: Api, Q: Querier>(
 }
 
 pub fn try_reset<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+    deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
     count: i32,
 ) -> StdResult<HandleResponse> {
+    let mut deps = RefCell::borrow_mut(&*deps);
     let sender_address_raw = deps.api.canonical_address(&env.message.sender)?;
     config(&mut deps.storage).update(|mut state| {
         if sender_address_raw != state.owner {
@@ -98,10 +108,11 @@ pub fn try_reset<S: Storage, A: Api, Q: Querier>(
 }
 
 pub fn try_simulate<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+    deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
     count: i32,
 ) -> StdResult<HandleResponse> {
+    let mut deps = RefCell::borrow_mut(&*deps);
     let owner = deps.api.canonical_address(&env.message.sender)?;
 
     for seq in 0..count {
@@ -117,6 +128,7 @@ pub fn try_simulate<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
+/*
 pub fn try_simulate_other<S: Storage, A: Api, Q: Querier>(
     _deps: &mut Extern<S, A, Q>,
     _env: Env,
@@ -148,6 +160,7 @@ pub fn try_simulate_other<S: Storage, A: Api, Q: Querier>(
     })
 }
 
+
 pub fn try_simulate_query<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     _env: Env,
@@ -174,9 +187,11 @@ pub fn try_simulate_query<S: Storage, A: Api, Q: Querier>(
         data: None,
     })
 }
+ */
+
 
 pub fn try_process_batch<S: Storage, A: Api, Q: Querier>(
-    _deps: &mut Extern<S, A, Q>,
+    _deps: Rc<RefCell<Extern<S, A, Q>>>,
     _env: Env,
     transactions: Vec<BatchTxn>,
 ) -> StdResult<HandleResponse> {
@@ -202,10 +217,12 @@ pub fn try_process_batch<S: Storage, A: Api, Q: Querier>(
 const MIN_CONTRACT_LEN: usize = 1000;
 
 pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+    deps: Rc<RefCell<Extern<S, A, Q>>>,
     _env: Env,
     data: Binary,
 ) -> StdResult<HandleResponse> {
+    let mut deps = RefCell::borrow_mut(&*deps);
+
     let data_u8 = data.as_slice();
     if data_u8.len() <= MIN_CONTRACT_LEN {
         return Err(StdError::GenericErr {
@@ -228,9 +245,10 @@ pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
 }
 
 pub fn try_load_contract<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+    deps: Rc<RefCell<Extern<S, A, Q>>>,
     _env: Env,
 ) -> StdResult<HandleResponse> {
+    let deps = RefCell::borrow_mut(&*deps);
     let wasm_bin = deps.storage.get(CONTRACT_DATA_KEY).unwrap();
 
     debug_print!("loaded WASM bytes: {}", wasm_bin.len());
@@ -238,37 +256,25 @@ pub fn try_load_contract<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
-pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
-    _deps: &mut Extern<S, A, Q>,
+pub fn try_run_wasm<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
+    deps: Rc<RefCell<Extern<S, A, Q>>>,
     _env: Env,
 ) -> StdResult<HandleResponse> {
-    debug_print("RHAI: start");
+    let _engine = OmnibusEngine::new(deps);
 
-    //let mut do_store = |key: ImmutableString, val: ImmutableString| {
-    //    deps.storage.set(key.as_bytes(), val.as_bytes());
-    //};
+   // let engine = omnibus_core::
 
+    //let shared_deps = SharedExtern::new(deps);
+
+    /*
     let mut engine = Engine::new();
 
-    //engine.register_fn("do_store", do_store);
+    let key = "key";
 
-    // Default print/debug implementations
-    engine.on_print(|text| {
-        println!("CORTEX[]: {}", text);
-        debug_print!("CORTEX[]: {}", text);
-    });
+    storage_set(key.as_bytes(), key.as_bytes());
 
-    engine.on_debug(|text, source, pos| {
-        if let Some(source) = source {
-            println!("{} @ {:?} | {}", source, pos, text);
-            debug_print!("{} @ {:?} | {}", source, pos, text);
-        } else if pos.is_none() {
-            println!("{}", text);
-            debug_print!("{}", text);
-        } else {
-            println!("{:?} | {}", pos, text);
-            debug_print!("{:?} | {}", pos, text);
-        }
+    engine.register_fn("do_store", |key: &str, val: &str| {
+        storage_set(key.as_bytes(), val.as_bytes());
     });
 
     // Your first Rhai Script
@@ -277,7 +283,8 @@ let x = 1000;
 
 // simulate do..while using loop
 loop {
-    //do_store(x, x);
+    do_store(\"key\", \"1\");
+    //print(x);
 
     x -= 1;
 
@@ -285,13 +292,22 @@ loop {
 }
     ";
 
+    let ast: AST = engine.compile(script)?;
+
+
+
     // Run the script - prints "42"
-    //let _ret = engine.run(script);
+    let ret = engine.run(script).map_err({
+        StdError::GenericErr { msg: ret.err().unwrap(), backtrace: None }
+    })?;
 
-    let ast = engine.compile(script).unwrap();
-    let _ret = engine.eval_ast(&ast);
+    //ret.
 
-    
+    if !ret.is_ok() {
+        println!("DEAD: {}", ret.err().unwrap());
+    }
+
+     */
 
     Ok(HandleResponse::default())
 }

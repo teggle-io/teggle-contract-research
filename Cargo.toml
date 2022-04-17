@@ -30,24 +30,26 @@ overflow-checks = true
 default = []
 # for quicker tests, cargo test --lib
 # for more explicit tests, cargo test --features=backtraces
-backtraces = [ "cosmwasm-std/backtraces" ]
-debug-print = [ "cosmwasm-std/debug-print" ]
+backtraces = [
+  "cosmwasm-std/backtraces",
+  "omnibus-core/backtraces",
+]
+debug-print = [
+  "cosmwasm-std/debug-print",
+  "omnibus-core/debug-print",
+]
 
 [dependencies]
 snafu = { version = "0.6.3" }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 schemars = "0.7"
-cosmwasm-std = { version = "0.10", package = "secret-cosmwasm-std" }
-cosmwasm-storage = { version = "0.10", package = "secret-cosmwasm-storage" }
+cosmwasm-std = { version = "0.10", package = "teggle-cosmwasm-std", path = "../teggle-omnibus/packages/cosmwasm/std" }
+cosmwasm-storage = { version = "0.10", package = "teggle-cosmwasm-storage", path = "../teggle-omnibus/packages/cosmwasm/storage" }
+omnibus-core = { version = "0.10", package = "teggle-omnibus-core", path = "../teggle-omnibus/packages/core" }
 
 ## Testing
-secret-toolkit = "0.2.0"
+#secret-toolkit = "0.2.0"
 bincode2 = "2.0.1"
-
-[dependencies.rhai]
-version = "1.6.1"
-features = [ "only_i32", "no_float", "no_position", "no_closure", "unchecked", "serde" ]
-path = "../rhai"
 
 [dev-dependencies]
 cosmwasm-schema = "0.10.1"
