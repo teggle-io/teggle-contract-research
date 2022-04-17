@@ -21,10 +21,10 @@ pub enum HandleMsg {
         transactions: Vec<BatchTxn>,
     },
 
-    // Wasm
-    SaveContract { data: Binary },
-    LoadContract {},
-    RunWasm {}
+    // RHAI
+    Save { data: Binary },
+    Load {},
+    Run {}
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

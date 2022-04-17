@@ -6,7 +6,6 @@ use std::str;
 
 use cosmwasm_std::{Api, Binary, debug_print, Env, Extern, HandleResponse, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
 use cosmwasm_storage::PrefixedStorage;
-use omnibus_core::OmnibusEngine;
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, QueryMsg};
 use crate::state::{config, config_read, SCRIPT_DATA_KEY, set_bin_data, State};
@@ -54,9 +53,11 @@ pub fn handle<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
             Ok(HandleResponse::default())
         },
         HandleMsg::ProcessBatch { transactions } => try_process_batch(deps, env, transactions),
-        HandleMsg::SaveContract { data } => try_save_contract(deps, env, data),
-        HandleMsg::LoadContract {} => try_load_contract(deps, env),
-        HandleMsg::RunWasm {} => try_run_wasm(deps, env),
+
+        // RHAI
+        HandleMsg::Save { data } => try_save(deps, env, data),
+        HandleMsg::Load {} => try_load(deps, env),
+        HandleMsg::Run {} => try_run(deps, env),
     }
 }
 
@@ -213,23 +214,12 @@ pub fn try_process_batch<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
-// TODO, what should this be?
-const MIN_CONTRACT_LEN: usize = 1000;
-
-pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
+pub fn try_save<S: Storage, A: Api, Q: Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
     _env: Env,
     data: Binary,
 ) -> StdResult<HandleResponse> {
     let mut deps = RefCell::borrow_mut(&*deps);
-
-    let data_u8 = data.as_slice();
-    if data_u8.len() <= MIN_CONTRACT_LEN {
-        return Err(StdError::GenericErr {
-            msg: format!("data for contract invalid length (not big enough)"),
-            backtrace: None,
-        });
-    }
 
     // TODO: Authentication
 
@@ -237,38 +227,38 @@ pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
 
     // Store
     // raw storage with no serialization.
-    deps.storage.set(SCRIPT_DATA_KEY, data_u8);
+    deps.storage.set(SCRIPT_DATA_KEY, data.as_slice());
 
-    debug_print!("saved WASM bytes: {}", data.len());
+    debug_print!("saved rhai bytes: {}", data.len());
 
     Ok(HandleResponse::default())
 }
 
-pub fn try_load_contract<S: Storage, A: Api, Q: Querier>(
+pub fn try_load<S: Storage, A: Api, Q: Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
     _env: Env,
 ) -> StdResult<HandleResponse> {
     let deps = RefCell::borrow_mut(&*deps);
     let wasm_bin = deps.storage.get(SCRIPT_DATA_KEY).unwrap();
 
-    debug_print!("loaded WASM bytes: {}", wasm_bin.len());
+    debug_print!("loaded rhai bytes: {}", wasm_bin.len());
 
     Ok(HandleResponse::default())
 }
 
-pub fn try_run_wasm<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
+pub fn try_run<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
 ) -> StdResult<HandleResponse> {
-    let data = deps.storage.get(SCRIPT_DATA_KEY);
-    if data.is_none() {
-        return Err(StdError::GenericErr {
+    let script_data = RefCell::borrow_mut(&*deps)
+        .storage.get(SCRIPT_DATA_KEY);
+    match script_data {
+        Some(v) => omnibus_core::handle(deps, env, v.as_slice()),
+        None => Err(StdError::GenericErr {
             msg: format!("no rhai script found to run."),
             backtrace: None,
-        });
+        })
     }
-
-    omnibus_core::handle(deps, env, data)
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
