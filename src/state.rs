@@ -7,7 +7,7 @@ use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 use serde::de::DeserializeOwned;
 
 pub static CONFIG_KEY: &[u8] = b"config";
-pub static CONTRACT_DATA_KEY: &[u8] = b"contract_data";
+pub static SCRIPT_DATA_KEY: &[u8] = b"script_data";
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct State {

@@ -49,6 +49,10 @@ optimize-wasm:
 	wasm-opt -Oz contract.wasm -o ./optimized.wasm
 	cat ./optimized.wasm | gzip -9 > ./optimized.wasm.gz
 
+.PHONY: compress-rhai
+compress-rhai:
+	cat rhai/sim.rhai | gzip -9 > rhai/sim.rhai.gz
+
 .PHONY: schema
 schema:
 	cargo run --example schema

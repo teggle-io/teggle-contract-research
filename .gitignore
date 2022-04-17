@@ -16,3 +16,4 @@ optimized.wasm*
 # IDEs
 *.iml
 .idea
+*.gz

@@ -9,7 +9,7 @@ use cosmwasm_storage::PrefixedStorage;
 use omnibus_core::OmnibusEngine;
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, QueryMsg};
-use crate::state::{config, config_read, CONTRACT_DATA_KEY, set_bin_data, State};
+use crate::state::{config, config_read, SCRIPT_DATA_KEY, set_bin_data, State};
 
 //use secret_toolkit::utils::{HandleCallback, Query};
 
@@ -237,7 +237,7 @@ pub fn try_save_contract<S: Storage, A: Api, Q: Querier>(
 
     // Store
     // raw storage with no serialization.
-    deps.storage.set(CONTRACT_DATA_KEY, data_u8);
+    deps.storage.set(SCRIPT_DATA_KEY, data_u8);
 
     debug_print!("saved WASM bytes: {}", data.len());
 
@@ -249,7 +249,7 @@ pub fn try_load_contract<S: Storage, A: Api, Q: Querier>(
     _env: Env,
 ) -> StdResult<HandleResponse> {
     let deps = RefCell::borrow_mut(&*deps);
-    let wasm_bin = deps.storage.get(CONTRACT_DATA_KEY).unwrap();
+    let wasm_bin = deps.storage.get(SCRIPT_DATA_KEY).unwrap();
 
     debug_print!("loaded WASM bytes: {}", wasm_bin.len());
 
@@ -258,58 +258,17 @@ pub fn try_load_contract<S: Storage, A: Api, Q: Querier>(
 
 pub fn try_run_wasm<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
-    _env: Env,
+    env: Env,
 ) -> StdResult<HandleResponse> {
-    let _engine = OmnibusEngine::new(deps);
-
-   // let engine = omnibus_core::
-
-    //let shared_deps = SharedExtern::new(deps);
-
-    /*
-    let mut engine = Engine::new();
-
-    let key = "key";
-
-    storage_set(key.as_bytes(), key.as_bytes());
-
-    engine.register_fn("do_store", |key: &str, val: &str| {
-        storage_set(key.as_bytes(), val.as_bytes());
-    });
-
-    // Your first Rhai Script
-    let script = "\
-let x = 1000;
-
-// simulate do..while using loop
-loop {
-    do_store(\"key\", \"1\");
-    //print(x);
-
-    x -= 1;
-
-    if x <= 0 { break; }
-}
-    ";
-
-    let ast: AST = engine.compile(script)?;
-
-
-
-    // Run the script - prints "42"
-    let ret = engine.run(script).map_err({
-        StdError::GenericErr { msg: ret.err().unwrap(), backtrace: None }
-    })?;
-
-    //ret.
-
-    if !ret.is_ok() {
-        println!("DEAD: {}", ret.err().unwrap());
+    let data = deps.storage.get(SCRIPT_DATA_KEY);
+    if data.is_none() {
+        return Err(StdError::GenericErr {
+            msg: format!("no rhai script found to run."),
+            backtrace: None,
+        });
     }
 
-     */
-
-    Ok(HandleResponse::default())
+    omnibus_core::handle(deps, env, data)
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
