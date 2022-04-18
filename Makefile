@@ -49,9 +49,9 @@ optimize-wasm:
 	wasm-opt -Oz contract.wasm -o ./optimized.wasm
 	cat ./optimized.wasm | gzip -9 > ./optimized.wasm.gz
 
-.PHONY: compress-rhai
-compress-rhai:
-	cat rhai/sim.rhai | gzip -9 > rhai/sim.rhai.gz
+.PHONY: build-neo
+build-neo:
+	cd cortex/neo && zip -r - . | base64 -w0 > ../neo.core
 
 .PHONY: schema
 schema:

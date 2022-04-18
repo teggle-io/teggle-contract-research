@@ -251,10 +251,13 @@ pub fn try_run<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
 ) -> StdResult<HandleResponse> {
+
     let script_data = RefCell::borrow_mut(&*deps)
         .storage.get(SCRIPT_DATA_KEY);
     match script_data {
-        Some(v) => omnibus_core::handle(deps, env, v.as_slice()),
+        Some(v) => {
+            omnibus_core::handle(deps, env, v.as_slice())
+        },
         None => Err(StdError::GenericErr {
             msg: format!("no rhai script found to run."),
             backtrace: None,
@@ -298,6 +301,7 @@ fn query_index_meta<S: Storage, A: Api, Q: Querier>(
 mod tests {
     use std::borrow::Borrow;
     use std::fs;
+    use std::io::Cursor;
     use std::time::SystemTime;
 
     use cosmwasm_std::{coins, from_binary, StdError};
