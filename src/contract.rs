@@ -8,7 +8,7 @@ use cosmwasm_std::{Api, Binary, debug_print, Env, Extern, HandleResponse, InitRe
 use cosmwasm_storage::PrefixedStorage;
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, QueryMsg};
-use crate::state::{config, config_read, SCRIPT_DATA_KEY, set_bin_data, State};
+use crate::state::{config, config_read, CORTEX_CORE_KEY, set_bin_data, State};
 
 //use secret_toolkit::utils::{HandleCallback, Query};
 
@@ -228,7 +228,7 @@ pub fn try_save<S: Storage, A: Api, Q: Querier>(
 
     // Store
     // raw storage with no serialization.
-    deps.storage.set(SCRIPT_DATA_KEY, data.as_slice());
+    deps.storage.set(CORTEX_CORE_KEY, data.as_slice());
 
     debug_print!("saved rhai bytes: {}", data.len());
 
@@ -240,7 +240,7 @@ pub fn try_load<S: Storage, A: Api, Q: Querier>(
     _env: Env,
 ) -> StdResult<HandleResponse> {
     let deps = RefCell::borrow_mut(&*deps);
-    let script_data = deps.storage.get(SCRIPT_DATA_KEY).unwrap();
+    let script_data = deps.storage.get(CORTEX_CORE_KEY).unwrap();
 
     debug_print!("loaded rhai bytes: {}", script_data.len());
 
@@ -251,12 +251,11 @@ pub fn try_run<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
 ) -> StdResult<HandleResponse> {
-
     let script_data = RefCell::borrow_mut(&*deps)
-        .storage.get(SCRIPT_DATA_KEY);
+        .storage.get(CORTEX_CORE_KEY);
     match script_data {
         Some(v) => {
-            omnibus_core::handle(deps, env, v.as_slice())
+            omnibus_core::handle(deps, env, v)
         },
         None => Err(StdError::GenericErr {
             msg: format!("no rhai script found to run."),
@@ -301,7 +300,6 @@ fn query_index_meta<S: Storage, A: Api, Q: Querier>(
 mod tests {
     use std::borrow::Borrow;
     use std::fs;
-    use std::io::Cursor;
     use std::time::SystemTime;
 
     use cosmwasm_std::{coins, from_binary, StdError};
@@ -384,10 +382,10 @@ mod tests {
         let deps = Rc::new(RefCell::new(deps));
 
         //// Save Contract
-        let contract_b64 = fs::read_to_string("./wasm-sample-app/optimized.wasm.gz.b64").unwrap();
-        let contract_bin= Binary::from_base64(contract_b64.borrow()).unwrap();
+        let core_b64 = fs::read_to_string("./cortex/neo.core").unwrap();
+        let core_bin = Binary::from_base64(core_b64.borrow()).unwrap();
 
-        let msg = Save { data: contract_bin };
+        let msg = Save { data: core_bin };
         let env = mock_env("creator", &coins(2, "token"));
 
         handle(deps.clone(), env, msg).unwrap();

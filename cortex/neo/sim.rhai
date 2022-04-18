@@ -1,4 +1,4 @@
-fn handle() {
+fn simulate() {
     let x = 1000;
 
     // simulate do..while using loop
