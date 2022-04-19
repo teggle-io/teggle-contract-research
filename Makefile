@@ -55,11 +55,11 @@ build-neo:
 
 .PHONY: deploy-neo
 deploy-neo: build-neo
-	docker exec secretdev secretd tx compute execute $$CONTRACT "{\"save\": { \"data\": \"$$(cat ./cortex/neo.core)\" }}" --from a --keyring-backend test -y
+	docker exec secretdev secretd tx compute execute $$CONTRACT "{\"deploy\": { \"data\": \"$$(cat ./cortex/neo.core)\" }}" --from a --keyring-backend test -y
 
 .PHONY: run-neo
 run-neo:
-	docker exec secretdev secretd tx compute execute $$CONTRACT "{\"run\": {}}" --from a --keyring-backend test -y
+	docker exec secretdev secretd tx compute execute $$CONTRACT "{\"run\": {}}" --from a --gas 9000000 --keyring-backend test -y
 
 
 .PHONY: schema
@@ -79,7 +79,7 @@ start-server: # CTRL+C to stop
 # by using `docker exec secretdev secretcli`.
 .PHONY: store-contract-local
 store-contract-local:
-	docker exec secretdev secretcli tx compute store -y --from a --gas 9000000 /root/code/optimized.wasm.gz
+	docker exec secretdev secretd tx compute store -y --from a --gas 9000000 /root/code/optimized.wasm.gz
 
 .PHONY: clean
 clean:

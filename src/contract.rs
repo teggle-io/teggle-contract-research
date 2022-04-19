@@ -54,9 +54,8 @@ pub fn handle<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
         },
         HandleMsg::ProcessBatch { transactions } => try_process_batch(deps, env, transactions),
 
-        // RHAI
-        HandleMsg::Save { data } => try_save(deps, env, data),
-        HandleMsg::Load {} => try_load(deps, env),
+        // Core
+        HandleMsg::Deploy { data } => try_deploy(deps, env, data),
         HandleMsg::Run {} => try_run(deps, env),
     }
 }
@@ -214,35 +213,24 @@ pub fn try_process_batch<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
-pub fn try_save<S: Storage, A: Api, Q: Querier>(
+pub fn try_deploy<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
-    _env: Env,
+    env: Env,
     data: Binary,
 ) -> StdResult<HandleResponse> {
-    let mut deps = RefCell::borrow_mut(&*deps);
+    let mut ref_deps = RefCell::borrow_mut(&*deps);
+    let bytes: Vec<u8> = data.into();
 
     // TODO: Authentication
 
-    // TODO: Verify
-    // TODO: Ensure dummy deps are passed in
+    // Verify & Deploy (init core)
+    omnibus_core::deploy(deps.clone(), env, bytes.clone())?;
 
     // Store
     // raw storage with no serialization.
-    deps.storage.set(CORTEX_CORE_KEY, data.as_slice());
+    ref_deps.storage.set(CORTEX_CORE_KEY, bytes.as_slice());
 
-    debug_print!("saved rhai bytes: {}", data.len());
-
-    Ok(HandleResponse::default())
-}
-
-pub fn try_load<S: Storage, A: Api, Q: Querier>(
-    deps: Rc<RefCell<Extern<S, A, Q>>>,
-    _env: Env,
-) -> StdResult<HandleResponse> {
-    let deps = RefCell::borrow_mut(&*deps);
-    let script_data = deps.storage.get(CORTEX_CORE_KEY).unwrap();
-
-    debug_print!("loaded rhai bytes: {}", script_data.len());
+    debug_print!("saved rhai bytes: {}", bytes.len());
 
     Ok(HandleResponse::default())
 }
@@ -305,7 +293,7 @@ mod tests {
     use cosmwasm_std::{coins, from_binary, StdError};
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 
-    use crate::msg::HandleMsg::{Run, Save};
+    use crate::msg::HandleMsg::{Run, Deploy};
 
     use super::*;
 
@@ -385,7 +373,7 @@ mod tests {
         let core_b64 = fs::read_to_string("./cortex/neo.core").unwrap();
         let core_bin = Binary::from_base64(core_b64.borrow()).unwrap();
 
-        let msg = Save { data: core_bin };
+        let msg = Deploy { data: core_bin };
         let env = mock_env("creator", &coins(2, "token"));
 
         handle(deps.clone(), env, msg).unwrap();

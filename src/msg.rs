@@ -22,8 +22,7 @@ pub enum HandleMsg {
     },
 
     // RHAI
-    Save { data: Binary },
-    Load {},
+    Deploy { data: Binary },
     Run {}
 }
 
