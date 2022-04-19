@@ -3,7 +3,7 @@ fn simulate() {
 
     // simulate do..while using loop
 
-    print("sim: start simulation");
+    debug("start simulation");
 
     loop {
         storage_set(`key.${x}`, x.to_string());
@@ -13,6 +13,5 @@ fn simulate() {
         if x <= 0 { break; }
     }
 
-    print("sim: end simulation");
-    debug("sim: debug");
+    debug("end simulation");
 }

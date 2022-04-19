@@ -38,6 +38,9 @@ debug-print = [
   "cosmwasm-std/debug-print",
   "omnibus-core/debug-print",
 ]
+test-print = [
+  "omnibus-core/test-print"
+]
 
 [dependencies]
 snafu = { version = "0.6.3" }

@@ -1,7 +1,17 @@
 import "sim" as sim;
 
+fn deploy() {
+    print("deploy called");
+}
+
+
 fn handle() {
-    debug("handle called");
+    print("handle called");
 
     sim::simulate();
+}
+
+
+fn query() {
+    print("query called");
 }

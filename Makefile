@@ -11,7 +11,7 @@ test: unit-test
 
 .PHONY: unit-test
 unit-test: build-neo
-	RUST_BACKTRACE=1 cargo test  --features="debug-print" -- --nocapture
+	RUST_BACKTRACE=1 cargo test --features="test-print" -- --nocapture
 
 # This is a local build with debug-prints activated. Debug prints only show up
 # in the local development chain (see the `start-server` command below)
@@ -19,8 +19,7 @@ unit-test: build-neo
 .PHONY: build _build
 build: _build compress-wasm optimize-wasm build-neo
 _build:
-	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown --features="debug-print"
-	#cargo build --release --target wasm32-unknown-unknown --features="debug-print"
+	cargo build --release --target wasm32-unknown-unknown --features="debug-print"
 
 # This is a build suitable for uploading to mainnet.
 # Calls to `debug_print` get removed by the compiler.
