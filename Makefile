@@ -10,14 +10,14 @@ PHONY: test
 test: unit-test
 
 .PHONY: unit-test
-unit-test:
+unit-test: build-neo
 	RUST_BACKTRACE=1 cargo test  --features="debug-print" -- --nocapture
 
 # This is a local build with debug-prints activated. Debug prints only show up
 # in the local development chain (see the `start-server` command below)
 # and mainnet won't accept contracts built with the feature enabled.
 .PHONY: build _build
-build: _build compress-wasm optimize-wasm
+build: _build compress-wasm optimize-wasm build-neo
 _build:
 	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown --features="debug-print"
 	#cargo build --release --target wasm32-unknown-unknown --features="debug-print"
@@ -51,7 +51,16 @@ optimize-wasm:
 
 .PHONY: build-neo
 build-neo:
-	cd cortex/neo && zip -r - . | base64 -w0 > ../neo.core
+	cd cortex/neo && zip -9 -r - . | base64 -w0 > ../neo.core
+
+.PHONY: deploy-neo
+deploy-neo: build-neo
+	docker exec secretdev secretd tx compute execute $$CONTRACT "{\"save\": { \"data\": \"$$(cat ./cortex/neo.core)\" }}" --from a --keyring-backend test -y
+
+.PHONY: run-neo
+run-neo:
+	docker exec secretdev secretd tx compute execute $$CONTRACT "{\"run\": {}}" --from a --keyring-backend test -y
+
 
 .PHONY: schema
 schema:
@@ -70,7 +79,7 @@ start-server: # CTRL+C to stop
 # by using `docker exec secretdev secretcli`.
 .PHONY: store-contract-local
 store-contract-local:
-	docker exec secretdev secretcli tx compute store -y --from a --gas 1000000 /root/code/contract.wasm.gz
+	docker exec secretdev secretcli tx compute store -y --from a --gas 9000000 /root/code/optimized.wasm.gz
 
 .PHONY: clean
 clean:
