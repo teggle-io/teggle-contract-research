@@ -21,9 +21,9 @@ pub enum HandleMsg {
         transactions: Vec<BatchTxn>,
     },
 
-    // RHAI
+    // Core
     Deploy { data: Binary },
-    Run {}
+    Run {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

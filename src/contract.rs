@@ -14,6 +14,7 @@ use crate::state::{config, config_read, CORTEX_CORE_KEY, set_bin_data, State};
 
 pub const PREFIX_SIM: &[u8] = b"sim";
 
+
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
