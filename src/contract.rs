@@ -387,6 +387,11 @@ mod tests {
 
         handle(deps.clone(), env, msg).unwrap();
 
+        //let deps = deps.clone();
+        //for x in 0..10000 {
+        //    deps.borrow_mut().storage.set(b"test", format!("v:{x}").as_bytes());
+        //}
+
         let end = SystemTime::now();
         let elapsed = end.duration_since(start);
         let taken_ms = elapsed.unwrap_or_default().as_millis();

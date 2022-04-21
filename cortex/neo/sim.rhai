@@ -1,4 +1,6 @@
 fn simulate() {
+    const KEY = "key";
+
     let x = 1000;
 
     // simulate do..while using loop
@@ -6,7 +8,7 @@ fn simulate() {
     debug("start simulation");
 
     loop {
-        storage_set(`key.${x}`, x.to_string());
+        storage_set([KEY, "2"], "2");
 
         x -= 1;
 
