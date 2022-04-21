@@ -7,6 +7,7 @@ fn deploy() {
 
 fn handle() {
     print("handle called");
+    print(ENV);
 
     sim::simulate();
 }
