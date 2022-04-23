@@ -2,5 +2,8 @@
   "cortex": {
     "name": "neo",
     "version": "v1"
-  }
+  },
+  "global": {
+    "entrypoints": ["constants", "main"],
+  },  
 }

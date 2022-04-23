@@ -17,3 +17,7 @@ fn simulate() {
 
     debug("end simulation");
 }
+
+fn other() {
+    
+}

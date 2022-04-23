@@ -1,0 +1,1 @@
+const MY_SETTING = "apple sauce";

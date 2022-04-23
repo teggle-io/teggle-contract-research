@@ -1,5 +1,8 @@
 import "sim" as sim;
 
+const TEST = "abcd";
+const KEY = "key";
+
 fn deploy() {
     print("deploy called");
 }
@@ -7,7 +10,6 @@ fn deploy() {
 
 fn handle() {
     print("handle called");
-    print(ENV);
 
     sim::simulate();
 }
@@ -15,4 +17,10 @@ fn handle() {
 
 fn query() {
     print("query called");
+}
+
+
+// Testing (ignore me)
+fn simple() {
+    storage_set(KEY, "2");
 }
