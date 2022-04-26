@@ -10,6 +10,8 @@ use cosmwasm_storage::PrefixedStorage;
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, QueryMsg};
 use crate::state::{config, config_read, CORTEX_CORE_KEY, set_bin_data, State};
 
+use ring::aead::{Aad, LessSafeKey as Key, Nonce, UnboundKey, CHACHA20_POLY1305};
+
 //use secret_toolkit::utils::{HandleCallback, Query};
 
 pub const PREFIX_SIM: &[u8] = b"sim";
@@ -54,6 +56,7 @@ pub fn handle<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
             Ok(HandleResponse::default())
         },
         HandleMsg::ProcessBatch { transactions } => try_process_batch(deps, env, transactions),
+        HandleMsg::CryptTest { count } => try_crypt_test(deps, env, count),
 
         // Core
         HandleMsg::Deploy { data } => try_deploy(deps, env, data),
@@ -214,6 +217,80 @@ pub fn try_process_batch<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
+pub fn try_crypt_test<S: Storage, A: Api, Q: Querier>(
+    _deps: Rc<RefCell<Extern<S, A, Q>>>,
+    env: Env,
+    count: i32,
+) -> StdResult<HandleResponse> {
+
+    let unbound_key = UnboundKey::new(&CHACHA20_POLY1305,
+                              b"an example very very secret key.")
+        .expect("failed to make key");
+
+    let adata = b"test";
+    let nonce_val = b"unique nonce";
+    let nonce = Nonce::try_assume_unique_for_key(nonce_val)
+        .expect("failed to make noonce"); // 12-bytes; unique per message
+    let key = Key::new(unbound_key);
+
+    let test_data = String::from("{ action: 'like', payload: { type: '2', something: 'a longer string' }}");
+    let mut buffer: Vec<u8> = test_data.as_bytes().to_vec();
+
+    key.seal_in_place_append_tag(nonce, Aad::from(&adata), &mut buffer)
+        .expect("failed to seal");
+
+    let buffer_64 = base64::encode(&buffer);
+
+    for _ in 0..count {
+        let mut cyp = base64::decode(&buffer_64)
+            .expect("base64 decode failure!");  // NOTE: handle this error to avoid panics!
+        let nonce = Nonce::try_assume_unique_for_key(nonce_val)
+            .expect("failed to make noonce"); // 12-bytes; unique per message
+        let _ret = key.open_in_place(nonce, Aad::from(&adata), &mut cyp)
+            .expect("failed to unseal");
+    }
+
+    debug_print!("block height: {}, block time: {}", env.block.height, env.block.time);
+    debug_print!("crypt decode for {count} messages ran successfully");
+
+    Ok(HandleResponse::default())
+}
+
+/*
+With chacha20poly1305, which is a nicer interface but slower than ring (60ms vs ring's 3ms).
+
+pub fn try_crypt_test<S: Storage, A: Api, Q: Querier>(
+    _deps: Rc<RefCell<Extern<S, A, Q>>>,
+    _env: Env,
+) -> StdResult<HandleResponse> {
+    let secret_data = Vec::from(r"{ action: 'like', payload: { type: '2', something: 'a longer string' }}");
+
+    let key = Key::from_slice(b"an example very very secret key."); // 32-bytes
+    let cipher = XChaCha20Poly1305::new(key);
+
+    let nonce = XNonce::from_slice(b"unique nonceunique nonce"); // 12-bytes; unique per message
+
+    let ciphertext = cipher.encrypt(nonce, secret_data.as_slice())
+        .expect("encryption failure!");  // NOTE: handle this error to avoid panics!
+
+    let ciphertext_64 = base64::encode(&ciphertext);
+
+    for _ in 0..1000 {
+        //let _plaintext = cipher.decrypt(nonce, ciphertext.as_ref())
+        //    .expect("decryption failure!");  // NOTE: handle this error to avoid panics!
+        let cyp = base64::decode(&ciphertext_64)
+            .expect("base64 decode failure!");  // NOTE: handle this error to avoid panics!
+        let _plaintext = cipher.decrypt(nonce, cyp.as_ref())
+            .expect("decryption failure!");  // NOTE: handle this error to avoid panics!
+    }
+
+    debug_print("crypt (w b64) test ran successfully");
+
+    Ok(HandleResponse::default())
+}
+
+ */
+
 pub fn try_deploy<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
@@ -294,7 +371,7 @@ mod tests {
     use cosmwasm_std::{coins, from_binary, StdError};
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 
-    use crate::msg::HandleMsg::{Run, Deploy};
+    use crate::msg::HandleMsg::{Deploy, CryptTest};
 
     use super::*;
 
@@ -380,7 +457,8 @@ mod tests {
         handle(deps.clone(), env, msg).unwrap();
 
         //// Run Contract
-        let msg = Run {};
+        //let msg = Run {};
+        let msg = CryptTest {};
         let env = mock_env("creator", &coins(2, "token"));
 
         let start = SystemTime::now();

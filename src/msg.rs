@@ -20,6 +20,7 @@ pub enum HandleMsg {
     ProcessBatch {
         transactions: Vec<BatchTxn>,
     },
+    CryptTest { count: i32 },
 
     // Core
     Deploy { data: Binary },

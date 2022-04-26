@@ -23,4 +23,5 @@ fn query() {
 // Testing (ignore me)
 fn simple() {
     storage_set(KEY, "2");
+    //debug(ENV);
 }
