@@ -219,10 +219,9 @@ pub fn try_process_batch<S: Storage, A: Api, Q: Querier>(
 
 pub fn try_crypt_test<S: Storage, A: Api, Q: Querier>(
     _deps: Rc<RefCell<Extern<S, A, Q>>>,
-    env: Env,
+    _env: Env,
     count: i32,
 ) -> StdResult<HandleResponse> {
-
     let unbound_key = UnboundKey::new(&CHACHA20_POLY1305,
                               b"an example very very secret key.")
         .expect("failed to make key");
