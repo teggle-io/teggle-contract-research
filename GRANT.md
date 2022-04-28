@@ -22,12 +22,12 @@ TODO: CHANGE ME.
 TODO: CHANGE ME.
 
 ## Team members
-* David Radunz
+* David Radunz (github: @rhomber, discord: Lyran Sage#1988)
 
 ### Consultants
-* Stephen Chung (@schungx) - rhai primary contributor. (rhai coaching / help / modifications)
-* Assaf Morami (@assafmo) - Secret Labs. (coaching / guidance)
-* Reuven Podmazo (@reuvenpo) - Secret Labs. (coaching / guidance
+* Stephen Chung (github: @schungx) - rhai primary contributor. (rhai coaching / help / modifications)
+* Assaf Morami (github: @assafmo) - Secret Labs. (coaching / guidance)
+* Reuven Podmazo (github: @reuvenpo) - Secret Labs. (coaching / guidance
 
 ## Team Website
 * http://teggle.com/ - Teggle (project homepage)
