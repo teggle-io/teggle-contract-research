@@ -40,7 +40,7 @@ The Teggle project will bring numerous benefits to the Secret Network, and it's 
 * Reuven Podmazo (github: @reuvenpo) - Secret Labs. (coaching / guidance)
 
 ## Team Website
-* http://teggle.com/ - Teggle (project homepage)
+* http://teggle.com/ - Teggle (project homepage, the app will be hosted on teggle.io)
 * http://vimturian.ltd/ - Vimturian Ltd (David's consulting company)
 
 ## Team's experience
