@@ -16,18 +16,28 @@ TODO: CHANGE ME.
 For more information, see the draft of our purple paper (white paper): https://teggle.com/purplepaper/
 
 ## Go-to-Market plan
-TODO: CHANGE ME.
+Our intention for this milestone is to build out a "Minimum Demonstrable Product" (MDP) and use it as a means to seek further funding through an IDO/ICO. We will require further assistance from either Secret Network or it's investors at that stage, but hope that by then the project is exciting enough there will be a lot of interest.
+
+Thankfully the products of this milestone will be several open source components that the Secret Network community will be able to use right away. Additionally, this milestone also intends to build enough features to also facilitate the IDO (i.e. Tokenomics and Governance).
 
 ## Value capture for Secret Network ecosystem
-TODO: CHANGE ME.
+The Teggle project will bring numerous benefits to the Secret Network, and it's community:
+* First full-featured "Social Network" to be built on Secret Network. Aimed at mass adoption, by proxy, should massively increase network awareness and utilization.
+* First "Layer 2" technology to be built exclusively on Secret Network. For now, this will be exclusive to Teggle transactions but as more projects use Omnibus it may be possible to aggregate cross-contract via "smart hubs". The layer 2 technology also means much more efficient operations, so Teggle will place less strain on the network. Throughput can be upwards of 1000 times more than the Layer 1 network by itself.
+* First "Upgradable Contracts" on Secret Network: Omnibus - Framework for building composable and upgradable smart contracts on Secret Network.
+* First "Secure Indexer" running on Secret Network. The research done to create this can be used by other teams with significantly less effort. It is our vision to eventually create a generic indexing platform that Secret Network projects can use to create true "web3" applications.
+* Numerous other by-products of developing a project of this scope, including:
+  * secret-client-rs: SGX compatible Secret Network rust client (required for hub and indexer).
+  * teggle-rhai-module-resolver-zip: Rhai module file resolver (already finished, required for Omnibus).
+  * patches created for rhai which increases performance by 60% (already submitted, required for Omnibus).
 
 ## Team members
 * David Radunz (github: @rhomber, discord: Lyran Sage#1988)
 
-### Consultants
+### Consultants & Guidance
 * Stephen Chung (github: @schungx) - rhai primary contributor. (rhai coaching / help / modifications)
 * Assaf Morami (github: @assafmo) - Secret Labs. (coaching / guidance)
-* Reuven Podmazo (github: @reuvenpo) - Secret Labs. (coaching / guidance
+* Reuven Podmazo (github: @reuvenpo) - Secret Labs. (coaching / guidance)
 
 ## Team Website
 * http://teggle.com/ - Teggle (project homepage)
@@ -37,10 +47,10 @@ TODO: CHANGE ME.
 * David has over 20 years of experience.
   * He has worked with some of the most renowned IT companies in Australia.
   * The roles he has held include:
+    * CTO / VP of Engineering / Project Manager
+    * Senior Architect / Solutions Architect
     * Senior (Full-Stack) Software Engineer
     * Senior Systems & Networking Engineer
-    * Senior Architect / Solutions Architect
-    * CTO / VP of Engineering / Project Manager
 
 ## Team Code Repos
 The majority of the work David has done has been private, however in the last month he has written a significant amount of code related to the Teggle project (and researching / proving certain requirements). Should you require it, David can provide references in lue of publicly committed code.
@@ -76,4 +86,4 @@ Ideally, we can receive payments in 4 disbursements:
 * At the start of Sprint 7.
 * At the start of Sprint 10 (or at the end if desired).
 
-We would be willing to consider part payment in SCRTs, up to 25%.
+We would be willing to consider part payment in SCRTs, up to 25% (paid at the equivalent USD exchange rate for each disbursement).
