@@ -19,11 +19,11 @@ Teggle aims to be seen as a premiere product and geared towards mass-adoption. F
 
 ### Layer 2
 
-By combining transactions together you can both increase throughput, reduce network congestion as well as reduce the cost per transaction.
+By combining transactions together you can both increase throughput, reduce network congestion as well as reduce the cost per transaction. You also don't have to force people to sign transactions and can even offer freemium services.
 
 #### Hub
 
-A hub will collect transactions from multiple users and submit them in batches to Omnibus. Anyone will be able to run a hub as the transactions they are given are encrypted using a Layer 2 session (see the paper for details). Someone who runs a hub can earn money as in exchange for paying to submit the transaction (in SCRT) they will be given some Teggle native tokens (yet to be given a denom).
+A hub will collect transactions from multiple users and submit them in batches to Omnibus. Anyone will be able to run a hub as the transactions they are given are encrypted using a Layer 2 session (see the paper for details). Someone who runs a hub can earn money in exchange for paying to submit the transaction (in SCRT) they will be given some Teggle native tokens (yet to be given a denom).
 
 #### Omnibus
 
