@@ -11,9 +11,27 @@ There are some solutions out there that address privacy, like Zion, but most of 
 What we are proposing is to develop a solution that can be seen in the eyes of the people as a true replacement for the likes of the current "big tech" offerings. Ideally, being seen as the next evolution, with no compromises.
 
 ## Detailed product description
-TODO: CHANGE ME.
+A significant amount of time has already been spent researching the best ways to achieve the solution we want. Along the way, we encountered some obstacles and have developed innovative workarounds. A lot of detail has already been added to our "Purple Paper", so this section will focus on summarising what is important and also add details missing from the purple paper where necessary. For more information, see the draft of our purple paper (white paper): https://teggle.com/purplepaper/.
 
-For more information, see the draft of our purple paper (white paper): https://teggle.com/purplepaper/
+### Objectives
+
+Teggle aims to be seen as a premiere product and geared towards mass-adoption. Featuring sleek UI design and advanced / novel features. To achieve mass adoption we also need to overcome some of the current problems with "web3" technologies, people aren't going to want to sign a transaction to like a post for example. The majority of these are solved with our novel Layer 2 solution.
+
+### Layer 2
+
+By combining transactions together you can both increase throughput, reduce network congestion as well as reduce the cost per transaction.
+
+#### Hub
+
+A hub will collect transactions from multiple users and submit them in batches to Omnibus. Anyone will be able to run a hub as the transactions they are given are encrypted using a Layer 2 session (see the paper for details). Someone who runs a hub can earn money as in exchange for paying to submit the transaction (in SCRT) they will be given some Teggle native tokens (yet to be given a denom).
+
+#### Omnibus
+
+Omnibus is both the system responsible for combining the layer 2 transactions, but also an engine capable of running upgradable "cortexes" (or cores). Smart contracts on the Secret Network are not upgradable and likely never will be due to the limitations of how the encryption works (the software hash is part of the key used to encrypt them). So even though it wasn't part of the original plan to have these "cortexes" it was required as we needed to be able to upgrade our software. The only other option is to migrate data to the new contract which is impossible for something like a social network. Nonetheless, the result is a standalone project that we are sure community will love and many projects will use.
+
+#### Indexer
+
+This was one of the most mind-boggling pieces of the research. To run a social network, you cannot query the blockchain for information. What you really need is a graph database, or at the very least a relational database. We don't have to see the content, but the metadata, the connections between people in order to create an index. The primary goal would be to not expose this information either, no one should know who your friends. The best solution early on was to just make this part private, at least it wouldn't be open to the world. Thankfully, a solution came at the last minute and after a considerable amount of research it appears to be a viable option. The indexer will also run inside an SGX enclave, much like the Secret Network contracts do! If you're curious to know more, read the paper ("Indexer & Search").
 
 ## Go-to-Market plan
 Our intention for this milestone is to build out a "Minimum Demonstrable Product" (MDP) and use it as a means to seek further funding through an IDO/ICO. We will require further assistance from either Secret Network or it's investors at that stage, but hope that by then the project is exciting enough there will be a lot of interest.
