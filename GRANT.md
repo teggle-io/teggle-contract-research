@@ -80,11 +80,11 @@ The majority of the work David has done has been private, however in the last mo
 * https://www.linkedin.com/in/david-radunz/
 
 ## Development Roadmap
-We will require ~12 months (48 weeks) to complete this milestone of the project. We intend to have 1 developer (David) full-time (60 hours a week @ $100/hr), at a total cost of $288,000.
+We will require ~11 months (48 weeks) to complete this milestone of the project. We intend to have 1 developer (David) full-time (60 hours a week @ $100/hr), at a total cost of $288,000.
 
 The project has been planned around 4 week "sprints" and is documented here: https://github.com/orgs/teggle-io/projects/1/views/1
 
-Sprints (4 weeks / 240 hrs):
+Sprints (4 weeks @ 60 hrs a week, 240 hrs total):
 * Sprint 1 - Omnibus (improving upon what has already been built).
 * Sprint 2 - Omnibus (release Omnibus to Secret Network community).
 * Sprint 3 - Omnibus enhancements, Create "secret-client-rs" (SN rust client), Build hub.
