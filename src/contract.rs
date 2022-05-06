@@ -364,13 +364,11 @@ fn query_index_meta<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use std::borrow::Borrow;
-    use std::fs;
-    use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
+    use std::{fs};
     use std::time::SystemTime;
 
     use cosmwasm_std::{coins, from_binary, StdError};
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
-
     use crate::msg::HandleMsg::{Deploy, Run};
 
     use super::*;
@@ -469,157 +467,5 @@ mod tests {
         let taken_ms = elapsed.unwrap_or_default().as_millis();
 
         println!("run_wasm taken: {taken_ms}ms")
-    }
-
-    #[test]
-    fn create_and_read_feed() {
-        // Testing
-        let header = "DUMMY[head:0]"; // Header to store current head position.
-        let header_len = header.len() as u64;
-        let data = "AA91a108816e1d439083a1d9ba36a5a398"; // 2 byte type, 32 byte UUID.
-        let data_len = data.len() as u64;
-
-        let total_feeds = 200_u64;
-        let total_entries = 10000_u64;
-        let fetch_size = 50_u64;
-
-        let file_name = "/home/david/teggle/feeds.dat";
-
-        create_feed_file(&file_name, &header, data_len, total_feeds, total_entries);
-        write_feed_file(&file_name, &header, &data, total_feeds, total_entries);
-        read_feed_file(&file_name, header_len, data_len, total_feeds, total_entries, fetch_size);
-    }
-
-    // Testing out feed storage
-    // A lot of copied code here, obviously won't be like this.
-    fn create_feed_file(
-        file_name: &str,
-        header: &str,
-        data_len: u64,
-        total_feeds: u64,
-        total_entries: u64
-    ) {
-        let header_len = header.len() as u64;
-        let page_size = header_len + (total_entries * data_len);
-
-        let file_path = std::path::Path::new(file_name);
-        if file_path.exists() {
-            fs::remove_file(file_path)
-                .expect("failed to remove file");
-        }
-
-        let mut file = BufWriter::new(fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(&file_path)
-            .unwrap());
-
-        let start = SystemTime::now();
-
-        for fi in 0..total_feeds {
-            file.seek(SeekFrom::Start(fi * page_size))
-                .expect("failed to seek");
-            file.write_all(header.as_bytes())
-                .expect("failed to write");
-        }
-
-        let end = SystemTime::now();
-        let elapsed = end.duration_since(start);
-        let taken_ms = elapsed.unwrap_or_default().as_millis();
-
-        let total_entries = total_feeds * total_entries;
-        if taken_ms <= 0 {
-            println!("created feed file: < {taken_ms}ms ({}+/ms)", total_entries)
-        } else {
-            println!("created feed file: {taken_ms}ms ({}/ms)", total_entries as u128 / taken_ms)
-        }
-    }
-
-    fn write_feed_file(
-        file_name: &str,
-        header: &str,
-        data: &str,
-        total_feeds: u64,
-        total_entries: u64
-    ) {
-        let header_len = header.len() as u64;
-        let data_len = data.len() as u64;
-
-        let page_size = header_len + (total_entries * data_len);
-
-        let mut file = BufWriter::new(fs::OpenOptions::new()
-            .write(true)
-            .read(true)
-            .open(file_name)
-            .unwrap());
-
-        let start = SystemTime::now();
-
-        for ti in 0..total_entries {
-            for fi in 0..total_feeds {
-                let page_pos = header_len + (fi * page_size);
-
-                file.seek(SeekFrom::Start(page_pos + (ti * data_len)))
-                    .expect("failed to seek");
-                file.write_all(data.as_bytes())
-                    .expect("failed to write");
-            }
-        }
-
-        let end = SystemTime::now();
-        let elapsed = end.duration_since(start);
-        let taken_ms = elapsed.unwrap_or_default().as_millis();
-
-        let total_entries = total_feeds * total_entries;
-        if taken_ms <= 0 {
-            println!("wrote feed file: < {taken_ms}ms ({}+/ms)", total_entries)
-        } else {
-            println!("wrote feed file: {taken_ms}ms ({}/s)", (total_entries as u128 * 1000) / taken_ms)
-        }
-    }
-
-    fn read_feed_file(
-        file_name: &str,
-        header_len: u64,
-        data_len: u64,
-        total_feeds: u64,
-        total_entries: u64,
-        fetch_size: u64
-    ) {
-        let page_size = header_len + (total_entries * data_len);
-        let fetch_size_bytes = fetch_size * data_len;
-
-        let mut file = BufReader::new(fs::OpenOptions::new()
-            .read(true)
-            .open(file_name)
-            .unwrap());
-
-        let start = SystemTime::now();
-
-        for fei in 0..(total_entries / fetch_size) {
-            for fi in 0..total_feeds {
-                let page_pos = header_len + (fi * page_size);
-                let fetch_pos = fei * fetch_size_bytes;
-                let seek_pos = page_pos + fetch_pos;
-
-                file.seek(SeekFrom::Start(seek_pos))
-                    .expect("failed to seek");
-
-                let mut buf = vec![0u8; fetch_size_bytes as usize];
-                file.read_exact(&mut buf)
-                    .expect("failed to read");
-            }
-        }
-
-        let end = SystemTime::now();
-        let elapsed = end.duration_since(start);
-        let taken_ms = elapsed.unwrap_or_default().as_millis();
-
-        let total_entries = total_feeds * total_entries;
-        if taken_ms <= 0 {
-            println!("read feed file: < {taken_ms}ms ({}+/ms)", total_entries)
-        } else {
-            println!("read feed file: {taken_ms}ms ({}/s)", (total_entries as u128 * 1000) / taken_ms)
-        }
     }
 }
