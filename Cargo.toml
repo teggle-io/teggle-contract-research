@@ -15,6 +15,10 @@ exclude = [
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[profile.dev]
+opt-level = 1 # Cant do "s", but 1 might be closer than 0.
+lto = "fat"
+
 [profile.release]
 opt-level = 3
 debug = false

@@ -413,13 +413,13 @@ impl<'d, S: Storage, A: Api, Q: Querier> Importer for CortexImporter<'d, S, A, Q
 
             #[cfg(feature = "debug-print")]
             "debug_print" => {
-                let msg_str_bytes = pop_value(stack, memory)?;
+                let _msg_str_bytes = pop_value(stack, memory)?;
 
                 // cortex.v1 (example of module name and version).
                 //debug_print!("WASM2[cortex.v1]: {}", String::from_utf8(msg_str_bytes).unwrap());
 
                 // TODO: REMOVE
-                println!("WASM2[cortex.v1]: {}", String::from_utf8(msg_str_bytes).unwrap());
+                //println!("WASM2[cortex.v1]: {}", String::from_utf8(msg_str_bytes).unwrap());
 
                 Ok(())
             }

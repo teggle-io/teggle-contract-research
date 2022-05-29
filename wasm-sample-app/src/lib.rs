@@ -89,7 +89,9 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     _msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
 
-    debug_print!("handle called by {}", env.message.sender);
+    for _ in 0..1000 {
+        debug_print!("handle called by {}", env.message.sender);
+    }
 
     return Ok(HandleResponse::default())
 }
