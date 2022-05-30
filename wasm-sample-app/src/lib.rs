@@ -62,13 +62,13 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 
     let owner = deps.api.canonical_address(&env.message.sender)?;
 
+    let mut sim_storage = PrefixedStorage::multilevel(
+        &[PREFIX_SIM, &owner.as_slice()],
+        &mut deps.storage,
+    );
+
     let count: i32 = 1000;
     for seq in 0..count {
-        let mut sim_storage = PrefixedStorage::multilevel(
-            &[PREFIX_SIM, &owner.as_slice()],
-            &mut deps.storage,
-        );
-
         // For 1:1 comparison with the native version.
         //sim_storage.set(&[seq as u8], &[seq as u8]);
 
