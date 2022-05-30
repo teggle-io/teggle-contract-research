@@ -30,8 +30,8 @@ fn simple() {
 
     let post_storage = storage(["P", "dda7eccb84704b8c96114fd8c68d6ec7"]);
     post_storage.set();
-    post_storage.set();
-    post_storage.set();
+    //post_storage.set();
+    //post_storage.set();
 
     //debug(ENV);
 }

@@ -10,8 +10,7 @@ use cosmwasm_storage::PrefixedStorage;
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, QueryMsg};
 use crate::state::{config, config_read, CORTEX_CORE_KEY, set_bin_data, State};
 
-use ring::aead::{Aad, LessSafeKey as Key, Nonce, UnboundKey, CHACHA20_POLY1305};
-
+//use ring::aead::{Aad, LessSafeKey as Key, Nonce, UnboundKey, CHACHA20_POLY1305};
 //use secret_toolkit::utils::{HandleCallback, Query};
 
 pub const PREFIX_SIM: &[u8] = b"sim";
@@ -56,7 +55,7 @@ pub fn handle<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
             Ok(HandleResponse::default())
         },
         HandleMsg::ProcessBatch { transactions } => try_process_batch(deps, env, transactions),
-        HandleMsg::CryptTest { count } => try_crypt_test(deps, env, count),
+        //HandleMsg::CryptTest { count } => try_crypt_test(deps, env, count),
 
         // Core
         HandleMsg::Deploy { data } => try_deploy(deps, env, data),
@@ -217,6 +216,7 @@ pub fn try_process_batch<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
+/*
 pub fn try_crypt_test<S: Storage, A: Api, Q: Querier>(
     _deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
@@ -254,6 +254,8 @@ pub fn try_crypt_test<S: Storage, A: Api, Q: Querier>(
 
     Ok(HandleResponse::default())
 }
+
+ */
 
 /*
 With chacha20poly1305, which is a nicer interface but slower than ring (60ms vs ring's 3ms).
