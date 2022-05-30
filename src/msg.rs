@@ -23,7 +23,7 @@ pub enum HandleMsg {
     CryptTest { count: i32 },
 
     // Core
-    Deploy { data: Binary },
+    //Deploy { data: Binary },
     Run {},
 }
 

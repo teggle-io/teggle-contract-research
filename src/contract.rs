@@ -1,14 +1,16 @@
-extern crate omnibus_core;
+//extern crate omnibus_core;
+extern crate boa_engine;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
+use boa_engine::{Context, JsResult};
 
 use cosmwasm_std::{Api, Binary, debug_print, Env, Extern, HandleResponse, InitResponse, plaintext_log, Querier, StdError, StdResult, Storage, to_binary};
 use cosmwasm_storage::PrefixedStorage;
 
 use crate::msg::{BatchTxn, CountResponse, HandleMsg, InitMsg, QueryMsg};
-use crate::state::{config, config_read, CORTEX_CORE_KEY, set_bin_data, State};
+use crate::state::{config, config_read, set_bin_data, State};
 
 use ring::aead::{Aad, LessSafeKey as Key, Nonce, UnboundKey, CHACHA20_POLY1305};
 
@@ -59,7 +61,7 @@ pub fn handle<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
         HandleMsg::CryptTest { count } => try_crypt_test(deps, env, count),
 
         // Core
-        HandleMsg::Deploy { data } => try_deploy(deps, env, data),
+        //HandleMsg::Deploy { data } => try_deploy(deps, env, data),
         HandleMsg::Run {} => try_run(deps, env),
     }
 }
@@ -290,6 +292,7 @@ pub fn try_crypt_test<S: Storage, A: Api, Q: Querier>(
 
  */
 
+/*
 pub fn try_deploy<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
     env: Env,
@@ -329,6 +332,22 @@ pub fn try_run<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
     }
 }
 
+ */
+
+pub fn try_run<S: 'static + Storage, A: 'static + Api, Q: 'static + Querier>(
+    _deps: Rc<RefCell<Extern<S, A, Q>>>,
+    _env: Env,
+) -> StdResult<HandleResponse> {
+    let mut context = Context::default();
+
+    match context.eval("for (var i = 0; i < 1000; i++){  }") {
+        Ok(_) => {}
+        Err(_) => {}
+    }
+
+    Ok(HandleResponse::default())
+}
+
 pub fn query<S: Storage, A: Api, Q: Querier>(
     deps: Rc<RefCell<Extern<S, A, Q>>>,
     msg: QueryMsg,
@@ -363,13 +382,13 @@ fn query_index_meta<S: Storage, A: Api, Q: Querier>(
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Borrow;
-    use std::{fs};
+    //use std::borrow::Borrow;
+    //use std::{fs};
     use std::time::SystemTime;
 
     use cosmwasm_std::{coins, from_binary, StdError};
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use crate::msg::HandleMsg::{Deploy, Run};
+    use crate::msg::HandleMsg::{Run};
 
     use super::*;
 
@@ -446,13 +465,13 @@ mod tests {
         let deps = Rc::new(RefCell::new(deps));
 
         //// Save Contract
-        let core_b64 = fs::read_to_string("./cortex/neo.core").unwrap();
-        let core_bin = Binary::from_base64(core_b64.borrow()).unwrap();
+        //let core_b64 = fs::read_to_string("./cortex/neo.core").unwrap();
+        //let core_bin = Binary::from_base64(core_b64.borrow()).unwrap();
 
-        let msg = Deploy { data: core_bin };
-        let env = mock_env("creator", &coins(2, "token"));
+        //let msg = Deploy { data: core_bin };
+        //let env = mock_env("creator", &coins(2, "token"));
 
-        handle(deps.clone(), env, msg).unwrap();
+        //handle(deps.clone(), env, msg).unwrap();
 
         //// Run Contract
         let msg = Run {};

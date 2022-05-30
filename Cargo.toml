@@ -36,14 +36,14 @@ default = []
 # for more explicit tests, cargo test --features=backtraces
 backtraces = [
   "cosmwasm-std/backtraces",
-  "omnibus-core/backtraces",
+  #"omnibus-core/backtraces",
 ]
 debug-print = [
   "cosmwasm-std/debug-print",
-  "omnibus-core/debug-print",
+  #"omnibus-core/debug-print",
 ]
 test-print = [
-  "omnibus-core/test-print"
+  #"omnibus-core/test-print"
 ]
 
 [dependencies]
@@ -56,6 +56,8 @@ schemars = "0.7"
 # Testing
 #chacha20poly1305 = { version = "0.9.0" }
 base64 = "0.11.0"
+boa_engine = { features = ["console"], version = "0.14.0" }
+ahash = { version = "0.7.6", features = ["compile-time-rng"] }
 
 [dependencies.ring]
 #version = "0.17.0-alpha.11"
@@ -74,10 +76,10 @@ version = "0.10"
 package = "teggle-cosmwasm-storage"
 path = "../teggle-omnibus/packages/cosmwasm/storage"
 
-[dependencies.omnibus-core]
-version = "0.10"
-package = "teggle-omnibus-core"
-path = "../teggle-omnibus/packages/core"
+#[dependencies.omnibus-core]
+#version = "0.10"
+#package = "teggle-omnibus-core"
+#path = "../teggle-omnibus/packages/core"
 
 [dev-dependencies]
 cosmwasm-schema = "0.10.1"
