@@ -22,14 +22,14 @@ fn query() {
 
 // Testing (ignore me)
 fn simple() {
-    //storage_set(KEY, "2");
+    storage_set(KEY, "2");
 
     // Simulate store post.
     //storage_set(["P", "dda7eccb84704b8c96114fd8c68d6ec7", "len"], "1");
     //storage_set(["P", "dda7eccb84704b8c96114fd8c68d6ec7", "0"], "{ test1: data1, test2: data2, test3: data3, test4: data4 }");
 
-    let post_storage = storage(["P", "dda7eccb84704b8c96114fd8c68d6ec7"]);
-    post_storage.set();
+    //let post_storage = storage(["P", "dda7eccb84704b8c96114fd8c68d6ec7"]);
+    //post_storage.set();
     //post_storage.set();
     //post_storage.set();
 
