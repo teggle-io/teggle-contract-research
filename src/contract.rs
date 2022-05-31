@@ -255,6 +255,8 @@ pub fn try_run_wasm<S: Storage, A: Api, Q: Querier>(
         });
     }
 
+    debug_print("WASM: running handle");
+
     wasm2_host::handle(&data.unwrap(), deps, env)
 }
 
