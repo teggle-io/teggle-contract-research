@@ -1,5 +1,3 @@
-# Teggle
-
 ## Project Description
 Teggle intends to be the very first truly decentralised, censorship resistant and private social network. We intend to create a privacy by default, intuitive to use, performant and mass-adoptable platform.
 
@@ -38,6 +36,10 @@ Our intention for this milestone is to build out a "Minimum Demonstrable Product
 
 Thankfully the products of this milestone will be several open source components that the Secret Network community will be able to use right away. Additionally, this milestone also intends to build enough features to also facilitate the IDO (i.e. Tokenomics and Governance).
 
+Once we are ready to go to market, our plan will look something like this: We'll recruit marketing specialists and community managers to devise a set of game plans. At first, we will target communities that are most likely to be looking for privacy focused solutions. Next, we'll promote our slick experience to other key demographics, selling it as the logical evolution of social media. All the while not looking to target any group specifically, but always trying to obtain a broad range of users. We'll also start grass roots groups who's sole responsibility will be to see Teggle succeed and to drive adoption. We will enable this by offering a referral based system, they will be given a certain percentage of the users transaction fees (either for life, or for a certain period of time).
+
+A huge part of acquiring new users will be availability of content. So one of our primary focuses early on will be to attract content creators to the platform. Ideally looking to acquire a range of content and having well known content creators use our platform in addition to to their current ones (at least to begin with). This will be achieved by finding creators who believe in our mission as well as through incentive programs.
+
 ## Value capture for Secret Network ecosystem
 The Teggle project will bring numerous benefits to the Secret Network, and it's community:
 * First full-featured "Social Network" to be built on Secret Network. Aimed at mass adoption, by proxy, should massively increase network awareness and utilization.
@@ -48,6 +50,7 @@ The Teggle project will bring numerous benefits to the Secret Network, and it's 
   * secret-client-rs: SGX compatible Secret Network rust client (required for hub and indexer).
   * teggle-rhai-module-resolver-zip: Rhai module file resolver (already finished, required for Omnibus).
   * patches created for rhai which increases performance by 60% (already submitted, required for Omnibus).
+  * paves the way to provide more generic indexing services for Secret Network, running Omnibus instances both inside Secret Smart contracts and also inside indexers.
 
 ## Team members
 * David Radunz (github: @rhomber, discord: Lyran Sage#1988)
@@ -73,7 +76,7 @@ The Teggle project will bring numerous benefits to the Secret Network, and it's 
 ## Team Code Repos
 The majority of the work David has done has been private, however in the last month he has written a significant amount of code related to the Teggle project (and researching / proving certain requirements). Should you require it, David can provide references in lue of publicly committed code.
 
-* https://github.com/teggle-io (Teggle repo, of note: teggle-omnibus and teggle-contract-research)
+* https://github.com/teggle-io (Teggle repo, of note: teggle-omnibus, teggle-contract-research and teggle-index-research)
 * https://github.com/rhomber (David's github, mostly forks)
 
 ## Team LinkedIn Profiles
